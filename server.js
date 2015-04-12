@@ -1,6 +1,6 @@
 var http = require("http");
 var port = 80;
-var db = require("./db")();
+var db = require("./db");
 
 var server = http.createServer(function (req, res) {
     res.writeHead(200, {
