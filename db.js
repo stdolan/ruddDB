@@ -1,19 +1,17 @@
 // db.js - The main database object in ruddDB
 var Table = require("./table")
 
-var tables = [];
+var tables = {};
 
 exports.create_table = function (tbl_name, schema) {
-    tables.push(new Table(tbl_name, schema));
+    tables.tbl_name = new Table(tbl_name, schema);
 }
  
 exports.insert = function (tbl_name, tup) {
-    for (var i = 0; i < tables.length; i++) {
-        var table = tables[i];
-        if (table.tbl_name === tbl_name) {
-            table._insert_tuple(tup);
-        }
-    }
+    if (tables.tbl_name !== undefined)
+        tables.tbl_name._insert_tuple(tup);
+    else
+        throw "Table " + tbl_name + " not found!";
 }
 
 exports.select = function (tbl_name, pred) {
@@ -22,13 +20,11 @@ exports.select = function (tbl_name, pred) {
         pred = function (x) {return true;};
     }
 
-    for (var i = 0; i < tables.length; i++) {
-        // Find the right table, and then return the appropriate tuples.
-        var table = tables[i];
-        if (table.tbl_name === tbl_name) {
-            return table.tuples.filter(pred);
-        }
-    }
+    var table = tables.tbl_name;
+    if (table !== undefined)
+        return table.tuples.filter(pred);
+    else
+        throw "Table " + tbl_name + " not found!";
 }
 
 // Debug Functions
