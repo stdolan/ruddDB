@@ -1,5 +1,6 @@
 /* test.js - basic bootstrap tests for ruddDB */
 var db = require("./db");
+var util = require("./util");
 
 function assert(condition, message) {
     if (!condition) {
@@ -10,13 +11,17 @@ function assert(condition, message) {
 /* Check that the database exists */
 assert(db._is_loaded(), "Database failed to load!");
 
-/* Try some basic creation and inserts */
+/* Test inserts */
+console.log("Testing inserts");
 db.create_table("a", ["number"]);
 db.insert("a", [3]);
 db.insert("a", [4]);
-console.log("Trying to select some values, should be [[3], [4]]");
-console.log(db.select("a"));
-console.log("Trying to select some values, should be [[4]]");
-console.log(db.select("a", function (x) {return x > 3;}))
+db.insert("a", [5]);
+
+/* Test selects */
+console.log("Testing selects");
+assert(util.array_compare(db.select("a"), [[3], [4], [5]]))
+assert(util.array_compare(db.select("a", function (x) {return x > 3;}),
+                          [[4], [5]]))
 
 console.log("All tests passed!");
