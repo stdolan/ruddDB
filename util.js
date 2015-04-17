@@ -21,4 +21,10 @@ function _array_compare(a, b, compare_func) {
     return true;
 }
 
+function _zip(arrays) {
+    return arrays[0].map(function(_,i){
+        return arrays.map(function(array){return array[i]})
+    });
+}
+
 exports.array_compare = _array_compare;

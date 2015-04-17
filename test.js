@@ -38,7 +38,7 @@ db.insert("a", [5]);
 console.log("Testing selects");
 assert(util.array_compare(db.select("a"), [[3], [4], [5]]),
        "Failed to select without predicate!")
-assert(util.array_compare(db.select("a", function (x) {return x > 3;}),
+assert(util.array_compare(db.select("a", function (Column) {return Column > 3;}),
                           [[4], [5]]),
        "Failed to select with predicate!")
 

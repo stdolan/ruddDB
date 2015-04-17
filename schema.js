@@ -19,5 +19,13 @@ module.exports = function Schema (names, types) {
 			
 		return true;
 	}
+
+    this.get_index_of_col = function (colname) {
+        ind = this.names.indexOf(colname);
+        if (ind == undefined) {
+            throw "Column not found!";
+        }
+        return ind;
+    }
 	// TODO concat?
 }

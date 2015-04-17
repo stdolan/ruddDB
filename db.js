@@ -15,12 +15,15 @@ exports.insert = function (tbl_name, tup) {
 }
 
 exports.select = function (tbl_name, pred) {
+    var table = tables.tbl_name;
+
     // If we didn't supply a predicate, return everything.
     if (pred === undefined) {
         pred = function (x) {return true;};
     }
-
-    var table = tables.tbl_name;
+    else {
+        pred = table._transform_pred(pred);
+    }
     if (table !== undefined)
         return table.tuples.filter(pred);
     else
