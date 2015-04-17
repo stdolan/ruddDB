@@ -21,7 +21,7 @@ module.exports = function Table (tbl_name, schema) {
         var arg_start = pred_str.indexOf("(") + 1;
         var arg_end = pred_str.indexOf(")");
         var body_start = pred_str.indexOf("{") + 1;
-        var body_end = pred_str.indexOf("}");
+        var body_end = pred_str.length -1;
 
         var args = pred_str.substring(arg_start, arg_end).split(",")
         args = args.map(function (x) {return x.trim();});
