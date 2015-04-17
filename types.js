@@ -8,8 +8,7 @@ var BOOLEAN = 3;
 function is_type (val, type) {
 	switch(type) {
 		case INTEGER:
-		    // use isSafeInteger? or else we can leak into float territory
-			return Number.isInteger(val)
+			return is_integer(val);
 		case FLOAT:
 			return (typeof val === 'number');
 		case STRING:
@@ -18,6 +17,13 @@ function is_type (val, type) {
 			return (typeof val === 'boolean');
 		default:
 			throw "Unrecognized type! " + type;
+	}
+}
+
+function is_integer(val) {
+	if(typeof val === 'number') {
+		// Jank as fuck, but it seems to work
+		return (val | 0 === val);
 	}
 }
 
