@@ -1,5 +1,7 @@
 /* test.js - basic bootstrap tests for ruddDB */
 var db = require("./db");
+var Schema = require("./schema");
+var types = require("./types");
 var util = require("./util");
 
 function assert(condition, message) {
@@ -11,9 +13,22 @@ function assert(condition, message) {
 /* Check that the database exists */
 assert(db._is_loaded(), "Database failed to load!");
 
+/* Test typing */
+var sch = new Schema(['Foos', 'Bars'], [types.INTEGER, types.STRING]);
+var tup1 = [0, 'w'];
+var tup2 = [0];
+var tup3 = [0, 'w', 4];
+var tup4 = ['w', 0];
+
+assert( sch.matches_tuple(tup1));
+assert(!sch.matches_tuple(tup2));
+assert(!sch.matches_tuple(tup3));
+assert(!sch.matches_tuple(tup4));
+
 /* Test inserts */
 console.log("Testing inserts");
-db.create_table("a", ["number"]);
+var sch2 = new Schema(['Column'], [types.INTEGER]);
+db.create_table("a", sch2);
 db.insert("a", [3]);
 db.insert("a", [4]);
 db.insert("a", [5]);
