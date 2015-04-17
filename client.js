@@ -18,6 +18,7 @@ http.get(url, function(res) {
         console.log("Got code " + res.statusCode + ".");
 }).on('error', function(e) {
     console.log("Got error: " + e.message);
+    process.exit(1);
 });
 
 // Matches ["http"/"https", hostname, path, port].
@@ -32,25 +33,25 @@ var post_options = {
     host: parsed_url[2],
     path: parsed_url[3] || "",
     port: parsed_url[4] || 80,
-    method: 'POST',
+    method: "POST",
     headers: {
-        'Content-Type': "text/javascript",
-        'Content-Length': 0
+        "Content-Type": "text/javascript",
+        "Content-Length": 0
     }
 };
 
 function send_command(command) {
     post_options.headers["Content-Length"] = command.length;
 
+    var ret = "";
+
     var post_req = http.request(post_options, function(res) {
         res.setEncoding("utf8");
         res.on("data", function (chunk) {
-            if (chunk[chunk.length - 1] === "\n")
-                prompt.write("Received:" + chunk);
-            else
-                prompt.write("Received: " + chunk + "\n");
+            ret += chunk + "\n";
         });
         res.on("end", function() {
+            prompt.write(ret);
             prompt.question("> ", get_input);
         });
     });
@@ -67,7 +68,6 @@ function get_input(str) {
         || str === "exit")
         process.exit();
 
-    prompt.write("Sending: " + str + "\n");
     send_command(str);
     prompt.pause();
 }
