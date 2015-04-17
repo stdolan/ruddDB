@@ -20,15 +20,27 @@ var server = http.createServer(function (req, res) {
         });
 
         req.on('end', function () {
-            var ret = JSON.stringify(eval(command));
+            var ret = eval(command);
 
-            res.writeHead(200, {
-                'Content-Length': ret.length,
-                'Content-Type': 'text/plain'
-            });
+            if (ret === undefined || ret === null) {
+                res.writeHead(200, {
+                    'Content-Length': 0,
+                    'Content-Type': 'text/plain'
+                });
+                res.end();
+            }
+            
+            else {
+                ret = JSON.stringify(ret);
 
-            res.write(ret);
-            res.end();
+                res.writeHead(200, {
+                    'Content-Length': ret.length,
+                    'Content-Type': 'text/plain'
+                });
+
+                res.write(ret);
+                res.end();
+            }
         });
     }
 });
