@@ -14,6 +14,7 @@ function assert(condition, message) {
 assert(db._is_loaded(), "Database failed to load!");
 
 /* Test typing */
+console.log("Testing typing");
 var sch = new Schema(['Foos', 'Bars'], [types.INTEGER, types.STRING]);
 var tup1 = [0, 'w'];
 var tup2 = [0];
@@ -35,8 +36,10 @@ db.insert("a", [5]);
 
 /* Test selects */
 console.log("Testing selects");
-assert(util.array_compare(db.select("a"), [[3], [4], [5]]))
+assert(util.array_compare(db.select("a"), [[3], [4], [5]]),
+       "Failed to select without predicate!")
 assert(util.array_compare(db.select("a", function (x) {return x > 3;}),
-                          [[4], [5]]))
+                          [[4], [5]]),
+       "Failed to select with predicate!")
 
 console.log("All tests passed!");
