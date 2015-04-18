@@ -30,17 +30,24 @@ assert(!sch.matches_tuple(tup4));
 
 /* Test pipeline */
 console.log("Testing pipeline");
-var pipeline_table = new Table('Pipe', sch);
-pipeline_table._insert_tuple([3, 'dog']);
-pipeline_table._insert_tuple([2, 'cat']);
-pipeline_table._insert_tuple([9, 'pig']);
-pipeline_table._insert_tuple([7, 'ape']);
+var table_a = new Table('Animals', new Schema(['name'], [types.STRING]));
+var table_b = new Table('Numbers', new Schema(['len'], [types.INTEGER]));
 
-var t_node = new nodes.TableNode(pipeline_table);
-var s_node = new nodes.SelectNode(t_node, function (tup) { return tup[0] < 5 });
-assert(s_node.nextTuple()[1] === 'dog');
-assert(s_node.nextTuple()[1] === 'cat');
-assert(s_node.nextTuple() === null);
+table_a._insert_tuple(['dog']);
+table_a._insert_tuple(['cat']);
+table_a._insert_tuple(['giraffe']);
+
+table_b._insert_tuple([3]);
+table_b._insert_tuple([7]);
+table_b._insert_tuple([5]);
+
+var plan = new nodes.SelectNode(new nodes.JoinNode(new nodes.TableNode(table_a),
+        new nodes.TableNode(table_b)), function (tup) { return tup[0].length === tup[1]; })
+	
+assert(util.array_compare(plan.nextTuple(), ['dog', 3]));
+assert(util.array_compare(plan.nextTuple(), ['cat', 3]));
+assert(util.array_compare(plan.nextTuple(), ['giraffe', 7]));
+assert(plan.nextTuple() === null);
 
 /* Test inserts */
 console.log("Testing inserts");
