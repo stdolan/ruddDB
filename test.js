@@ -41,13 +41,19 @@ table_b._insert_tuple([3]);
 table_b._insert_tuple([7]);
 table_b._insert_tuple([5]);
 
+function test_func(tup) {
+	return tup[0].length === tup[1];
+}
+
 var plan = new nodes.SelectNode(new nodes.JoinNode(new nodes.TableNode(table_a),
-        new nodes.TableNode(table_b)), function (tup) { return tup[0].length === tup[1]; })
-	
-assert(util.array_compare(plan.nextTuple(), ['dog', 3]));
-assert(util.array_compare(plan.nextTuple(), ['cat', 3]));
-assert(util.array_compare(plan.nextTuple(), ['giraffe', 7]));
+        new nodes.TableNode(table_b)), test_func )
+
+assert(util.array_eq(plan.nextTuple(), ['dog', 3]));
+assert(util.array_eq(plan.nextTuple(), ['cat', 3]));
+assert(util.array_eq(plan.nextTuple(), ['giraffe', 7]));
 assert(plan.nextTuple() === null);
+
+// TODO test union node
 
 /* Test inserts */
 console.log("Testing inserts");
@@ -59,8 +65,8 @@ db.insert("a", [5]);
 
 /* Test selects */
 console.log("Testing selects");
-assert(util.array_compare(db.select("a"), [[3], [4], [5]]))
-assert(util.array_compare(db.select("a", function (x) {return x > 3;}),
+assert(util.array_deep_eq(db.select("a"), [[3], [4], [5]]))
+assert(util.array_deep_eq(db.select("a", function (x) {return x > 3;}),
                           [[4], [5]]))						  
 						  
 console.log("All tests passed!");

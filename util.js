@@ -1,24 +1,40 @@
 /*
- * array_compare takes two arrays, a and b, and recursively checks to see if
+ * array_eq takes two arrays, a and b, and recursively checks to see if
  * each element in a and b fits some compare function (which defaults to
  * type-strict equivalence).
  */
-function _array_compare(a, b, compare_func) {
-    if (a.length != b.length)
-        return false;
+function array_eq(a, b, eq_func) {
+	if(a.length !== b.length)
+		return false;
+	
+	eq_func = eq_func || function(x, y) { return x === y; };
+	
+	for (var i = 0; i < a.length; i++)
+		if(!eq_func(a[i], b[i]))
+			return false;
 
-    compare_func = compare_func || function(x, y) { return x === y; };
-
-    for (var i = 0; i < a.length; i++)
-        if (a[i].constructor === Array) {
-            if (!_array_compare(a[i], b[i], compare_func))
-                return false;
-        }
-
-        else if (!compare_func(a[i], b[i]))
-            return false;
-
-    return true;
+	return true;
 }
 
-exports.array_compare = _array_compare;
+function array_deep_eq(a, b, eq_func) {
+	if(a.length !== b.length)
+		return "no";
+	
+	eq_func = eq_func || function(x, y) { return x === y; };
+	
+	for (var i = 0; i < a.length; i++)
+	{
+		if(a[i].constructor === Array) {
+			if(!array_deep_eq(a[i], b[i], eq_func))
+				return "nope";
+		}
+			
+		else if(!eq_func(a[i], b[i]))
+			return ["ack", a, b, i];
+	}
+
+	return true;
+}
+
+module.exports.array_eq = array_eq;
+module.exports.array_deep_eq = array_deep_eq;
