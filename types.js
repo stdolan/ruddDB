@@ -25,6 +25,7 @@ function is_integer(val) {
 		// Jank as fuck, but it seems to work
 		return (val | 0 === val);
 	}
+	return false;
 }
 
 module.exports.INTEGER = INTEGER;
