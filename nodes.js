@@ -33,10 +33,9 @@ function TableNode(t) {
 }
 
 function SelectNode(child, pred) {
-	
-	this.reset = child.reset;
-	
+
 	// eta reduction, yo
+	this.reset = child.reset;
 	this.getSchema = child.getSchema;
 	
 	this.nextTuple = function () {
@@ -77,7 +76,19 @@ function JoinNode(left, right) {
 		
 		return currLeft.concat(nextRight);
 	}
-	
+}
+
+function ProjectNode(child, schemaMap) {
+
+	this.reset = child.reset;
+
+	this.getSchema = function () {
+        // TODO
+	}
+
+	this.nextTuple = function () {
+		// TODO
+	}
 }
 
 function UnionNode(left, right) {
@@ -87,7 +98,6 @@ function UnionNode(left, right) {
 		right.reset();
 	}
 	
-	// eta reduction, yo
 	this.getSchema = left.getSchema;
 
 	this.nextTuple = function() {
@@ -97,10 +107,10 @@ function UnionNode(left, right) {
 		return right.nextTuple();
 	}
 	
-	if(!util.array_eq(left.getSchema(), right.getSchema()))
+	if(!left.getSchema().equals(right.getSchema()))
 		throw "Schema do not match!";
 }
-	
+
 module.exports.TableNode = TableNode;
 module.exports.SelectNode = SelectNode;
 module.exports.JoinNode = JoinNode;

@@ -53,7 +53,23 @@ assert(util.array_eq(plan.nextTuple(), ['cat', 3]));
 assert(util.array_eq(plan.nextTuple(), ['giraffe', 7]));
 assert(plan.nextTuple() === null);
 
-// TODO test union node
+var sch = new Schema(['foo'], [types.INTEGER]);
+var table_l = new Table('Left', sch);
+var table_r = new Table('Right', sch);
+
+for(var i = 0; i < 5; i++) {
+	table_l._insert_tuple([i]);
+	table_r._insert_tuple([i * 10]);
+}
+
+var plan = new nodes.UnionNode(new nodes.TableNode(table_l),
+                               new nodes.TableNode(table_r));
+							   
+for(var i = 0; i < 5; i++)
+	assert(util.array_eq(plan.nextTuple(), [i]));
+for(var i = 0; i < 5; i++)
+	assert(util.array_eq(plan.nextTuple(), [i * 10]));
+assert(plan.nextTuple() === null);
 
 /* Test inserts */
 console.log("Testing inserts");

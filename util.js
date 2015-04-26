@@ -22,8 +22,7 @@ function array_deep_eq(a, b, eq_func) {
 	
 	eq_func = eq_func || function(x, y) { return x === y; };
 	
-	for (var i = 0; i < a.length; i++)
-	{
+	for (var i = 0; i < a.length; i++) {
 		if(a[i].constructor === Array) {
 			if(!array_deep_eq(a[i], b[i], eq_func))
 				return "nope";

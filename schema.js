@@ -1,6 +1,7 @@
 // schema.js - Implements schema for tables, and utility methods for them
 
 var types_ = require("./types");
+var util = require("./util");
 
 module.exports = function Schema (names, types) {
 	if(names.length !== types.length)
@@ -21,9 +22,14 @@ module.exports = function Schema (names, types) {
 			
 		return true;
 	}
-	
+
 	this.concat = function (other) {
 		return new Schema (this.names.concat(other.names),
 		                   this.types.concat(other.types));
+	}
+
+	this.equals = function(other) {
+		return util.array_eq(names, other.names) &&
+		        util.array_eq(types, other.types);
 	}
 }
