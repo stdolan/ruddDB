@@ -1,4 +1,5 @@
-// types.js - Provides a layer of types on top of Javascript's weak excuse for types
+/* types.js - Provides a layer of types on top of Javascript's weak excuse for
+types */
 
 var INTEGER = 0;
 var FLOAT = 1;

@@ -28,8 +28,8 @@ assert(!sch.matches_tuple(tup4));
 
 /* Test inserts */
 console.log("Testing inserts");
-var sch2 = new Schema(['Column'], [types.INTEGER]);
-db.create_table("a", sch2);
+var sch2 = new Schema(['Num'], [types.INTEGER]);
+db.create("a", sch2);
 db.insert("a", [3]);
 db.insert("a", [4]);
 db.insert("a", [5]);
@@ -38,7 +38,7 @@ db.insert("a", [5]);
 console.log("Testing selects");
 assert(util.array_compare(db.select("a"), [[3], [4], [5]]),
        "Failed to select without predicate!")
-assert(util.array_compare(db.select("a", function (Column) {return Column > 3;}),
+assert(util.array_compare(db.select("a", function (Num) {return Num > 3;}),
                           [[4], [5]]),
        "Failed to select with predicate!")
 
