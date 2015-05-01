@@ -1,3 +1,5 @@
+// util.js - Utility functions used throughout the codebase.
+
 /*
  * array_eq takes two arrays, a and b, and recursively checks to see if
  * each element in a and b fits some compare function (which defaults to
@@ -35,5 +37,14 @@ function array_deep_eq(a, b, eq_func) {
 	return true;
 }
 
+/* zip combines a set of arrays element wise, and is equivalent to the standard
+   zip function in lisp. */
+function zip(arrays) {
+    return arrays[0].map(function(_,i){
+        return arrays.map(function(array){return array[i]})
+    });
+}
+
 module.exports.array_eq = array_eq;
 module.exports.array_deep_eq = array_deep_eq;
+module.exports.zip = zip;

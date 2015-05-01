@@ -11,6 +11,8 @@ module.exports = function Schema (names, types) {
 	this.names = names;
     this.types = types;
 	
+    /* matches_tuple checks if an input tuple matches the schema in terms
+       of typing. */
 	this.matches_tuple = function (tuple) {
 		var t_len = tuple.length;
 		if(t_len !== this.length)
@@ -32,4 +34,13 @@ module.exports = function Schema (names, types) {
 		return util.array_eq(names, other.names) &&
 		        util.array_eq(types, other.types);
 	}
+
+    /* This function gets the index of a given column name in the schema */
+    this.get_index_of_col = function (colname) {
+        ind = this.names.indexOf(colname);
+        if (ind == undefined) {
+            throw "Column not found!";
+        }
+        return ind;
+    }
 }

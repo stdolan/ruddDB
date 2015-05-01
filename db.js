@@ -3,24 +3,41 @@ var Table = require("./table")
 
 var tables = {};
 
-exports.create_table = function (tbl_name, schema) {
+
+/* Creates a table. Equivalent to SQL: CREATE tbl_name (schema) */
+exports.create = function (tbl_name, schema) {
     tables.tbl_name = new Table(tbl_name, schema);
 }
- 
+
+/* Inserts a row into a table.
+   Equivalent to SQL: INSERT INTO tbl_name VALUE tup */
 exports.insert = function (tbl_name, tup) {
     if (tables.tbl_name !== undefined)
-        tables.tbl_name._insert_tuple(tup);
+        tables.tbl_name.insert_tuple(tup);
     else
         throw "Table " + tbl_name + " not found!";
 }
 
+/* Deletes tuples from a table that satisfy the given predicate
+   Equivalent to SQL: DELETE FROM tbl_name WHERE pred */
+exports._delete = function (tbl_name, pred) {
+    if (tables.tbl_name !== undefined)
+	    tables.tbl_name.delete_pred(pred);
+	else
+	    throw "Table " + tbl_name + " not found!";
+}
+/* Selects rows from a table.
+   Equivalent to SQL: SELECT * FROM tbl_name WHERE pred */
 exports.select = function (tbl_name, pred) {
+    var table = tables.tbl_name;
+
     // If we didn't supply a predicate, return everything.
     if (pred === undefined) {
         pred = function (x) {return true;};
     }
-
-    var table = tables.tbl_name;
+    else {
+        pred = table.transform_pred(pred);
+    }
     if (table !== undefined)
         return table.tuples.filter(pred);
     else

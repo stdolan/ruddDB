@@ -33,13 +33,13 @@ console.log("Testing pipeline");
 var table_a = new Table('Animals', new Schema(['name'], [types.STRING]));
 var table_b = new Table('Numbers', new Schema(['len'], [types.INTEGER]));
 
-table_a._insert_tuple(['dog']);
-table_a._insert_tuple(['cat']);
-table_a._insert_tuple(['giraffe']);
+table_a.insert_tuple(['dog']);
+table_a.insert_tuple(['cat']);
+table_a.insert_tuple(['giraffe']);
 
-table_b._insert_tuple([3]);
-table_b._insert_tuple([7]);
-table_b._insert_tuple([5]);
+table_b.insert_tuple([3]);
+table_b.insert_tuple([7]);
+table_b.insert_tuple([5]);
 
 function test_func(tup) {
 	return tup[0].length === tup[1];
@@ -58,8 +58,8 @@ var table_l = new Table('Left', sch);
 var table_r = new Table('Right', sch);
 
 for(var i = 0; i < 5; i++) {
-	table_l._insert_tuple([i]);
-	table_r._insert_tuple([i * 10]);
+	table_l.insert_tuple([i]);
+	table_r.insert_tuple([i * 10]);
 }
 
 var plan = new nodes.UnionNode(new nodes.TableNode(table_l),
@@ -73,8 +73,8 @@ assert(plan.nextTuple() === null);
 
 /* Test inserts */
 console.log("Testing inserts");
-var sch2 = new Schema(['Column'], [types.INTEGER]);
-db.create_table("a", sch2);
+var sch2 = new Schema(['Num'], [types.INTEGER]);
+db.create("a", sch2);
 db.insert("a", [3]);
 db.insert("a", [4]);
 db.insert("a", [5]);
@@ -84,5 +84,14 @@ console.log("Testing selects");
 assert(util.array_deep_eq(db.select("a"), [[3], [4], [5]]))
 assert(util.array_deep_eq(db.select("a", function (x) {return x > 3;}),
                           [[4], [5]]))						  
-						  
+
+/* Test deletes */
+console.log("Testing deletes");
+db._delete("a", function (Num) {return Num > 4;});
+assert(util.array_deep_eq(db.select("a"), [[3], [4]]),
+		"Failed to delete with predicate!")
+db._delete("a");
+assert(util.array_deep_eq(db.select("a"), []),
+        "Failed to delete without predicate!")
+
 console.log("All tests passed!");
