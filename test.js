@@ -42,4 +42,13 @@ assert(util.array_compare(db.select("a", function (Num) {return Num > 3;}),
                           [[4], [5]]),
        "Failed to select with predicate!")
 
+/* Test deletes */
+console.log("Testing deletes");
+db._delete("a", function (Num) {return Num > 4;});
+assert(util.array_compare(db.select("a"), [[3], [4]]),
+		"Failed to delete with predicate!")
+db._delete("a");
+assert(util.array_compare(db.select("a"), []),
+        "Failed to delete without predicate!")
+
 console.log("All tests passed!");

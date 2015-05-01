@@ -18,6 +18,14 @@ exports.insert = function (tbl_name, tup) {
         throw "Table " + tbl_name + " not found!";
 }
 
+/* Deletes tuples from a table that satisfy the given predicate
+   Equivalent to SQL: DELETE FROM tbl_name WHERE pred */
+exports._delete = function (tbl_name, pred) {
+    if (tables.tbl_name !== undefined)
+	    tables.tbl_name.delete_pred(pred);
+	else
+	    throw "Table " + tbl_name + " not found!";
+}
 /* Selects rows from a table.
    Equivalent to SQL: SELECT * FROM tbl_name WHERE pred */
 exports.select = function (tbl_name, pred) {

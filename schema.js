@@ -22,7 +22,7 @@ module.exports = function Schema (names, types) {
 		return true;
 	}
 
-    /* This funciton gets the index of a given column name in the schema */
+    /* This function gets the index of a given column name in the schema */
     this.get_index_of_col = function (colname) {
         ind = this.names.indexOf(colname);
         if (ind == undefined) {
