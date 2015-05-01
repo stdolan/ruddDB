@@ -19,7 +19,7 @@ module.exports = function Table (tbl_name, schema) {
 	
 	/* delete_pred deletes tuples from the table which satisfy the predicate.
 	   If the predicate is empty, all tuples are deleted. */
-	this.delete_pred = function (pred) {
+	this.delete_tuples = function (pred) {
 	    // If no predicate was supplied, delete everything.
 	    if (pred === undefined) {
 		    pred = function (x) {return true;};
@@ -29,9 +29,25 @@ module.exports = function Table (tbl_name, schema) {
 		}
 		/* Negates the given delete criteria and selects all tuples that
 		   did not satisfy the given predicate */
-		pred = this.negate_pred(pred);
+		var orig_pred = pred;
+        pred = function (tup) {return !orig_pred(tup);}
 		this.tuples = this.tuples.filter(pred);
 	}
+
+    this.update_tuples = function(mut, pred) {
+        /* Transform the given functions, then just update each record
+           one by one. */
+        mut = this.transform_pred(mut);
+        pred = this.transform_pred(pred);
+        var tuple;
+        for (var i = 0; i < this.tuples.length; i++) {
+            tuple = this.tuples[i];
+            if (pred(tuple)) {
+                mut(tuple);
+                this.tuples[i] = tuple;
+            }
+        }
+    }
 
     /* transform_pred takes a predicate which is a function on the table's
        columns, and transforms it to a function that can be directly applied
@@ -65,21 +81,4 @@ module.exports = function Table (tbl_name, schema) {
         eval("pred = function (tup) {" + body + "}");
         return pred;
     }
-	
-	/* negate_pred takes a predicate in the form that can be applied to
-       tuples in a table and returns the negation of the predicate in
-       the same form. */
-	this.negate_pred = function (pred) {
-	    var pred_str = pred.toString();
-		
-		/* Find indices of the predicate surrounding the boolean conditions */
-		var expr_start = pred_str.indexOf("{") + 8;
-		var expr_end = pred_str.length - 2;
-		
-		/* Reconstructs the original predicate with a 'not' surrounding 
-		   the conditional statement */
-		eval("pred = function (tup) {return !(" + pred_str.substring(
-		    expr_start, expr_end) + ");}");
-		return pred;
-	}
 }
