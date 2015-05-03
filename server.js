@@ -20,7 +20,24 @@ var server = http.createServer(function (req, res) {
         });
 
         req.on('end', function () {
-            var ret = eval(command);
+            var ret;
+            try {
+                ret = eval(command);
+            }
+
+            catch (e) {
+                ret = "Error" + e.name + ": " + e.message;
+                console.error(ret);
+
+                res.writeHead(200, {
+                    'Content-Length': ret.length,
+                    'Content-Type': 'text/plain'
+                });
+
+                res.write(ret);
+                res.end();
+                return;
+            }
 
             if (ret === undefined || ret === null) {
                 res.writeHead(200, {

@@ -69,6 +69,7 @@ function JoinNode(left, right) {
 		var nextRight = right.nextTuple();
 		if(nextRight === null) { // we exhausted the right
 			right.reset();
+			nextRight = right.nextTuple();
 			currLeft = left.nextTuple();
 			if(currLeft === null)
 				return null;
