@@ -4,7 +4,8 @@ var Table = require("./table")
 var tables = {};
 
 
-/* Creates a table. Equivalent to SQL: CREATE tbl_name (schema) */
+/* Creates a table. Equivalent to SQL: CREATE tbl_name (schema)
+   schema is specified in SQL way, aka "a INTEGER, b STRING", etc. */
 exports.create = function (tbl_name, schema) {
     tables.tbl_name = new Table(tbl_name, schema);
 }

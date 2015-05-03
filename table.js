@@ -1,8 +1,32 @@
 // table.js - the table class for ruddDB
 var Schema = require("./schema");
+// Solely required for make_schema
+var Types = require("./types");
 var util = require("./util");
 
+// We should probably move this to schema.js, ie have the schema constructor take a variable
+// (in terms of type) argument. Or maybe util?
+// Makes a schema object out of an SQL style schema declaration.
+function make_schema(s) {
+    var names = [], types = [];
+
+    s.split(",")
+    // Get each table/type on its own
+    .map(function(s) {
+        return s.match(/\s*(\S)+\s+(\S+)\s*/).slice(1);
+    })
+    // Make the arrays to pass to schema
+    .map(function (t) {
+        names.push(t[0]);
+        types.push(Types.map_type(t[1]));
+    });
+
+    return new Schema(names, types);
+}
+
 module.exports = function Table (tbl_name, schema) {
+    if (typeof schema === "string")
+        schema = make_schema(schema);
     this.schema = schema;
     this.tbl_name = tbl_name;
     this.tuples = [];
