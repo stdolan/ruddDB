@@ -21,12 +21,23 @@ exports.insert = function (tbl_name, tup) {
 
 /* Deletes tuples from a table that satisfy the given predicate
    Equivalent to SQL: DELETE FROM tbl_name WHERE pred */
-exports._delete = function (tbl_name, pred_str) {
+exports.delete = function (tbl_name, pred) {
     if (tables.tbl_name !== undefined)
-	    tables.tbl_name.delete_pred(pred_str);
+	    tables.tbl_name.delete_tuples(pred);
 	else
 	    throw "Table " + tbl_name + " not found!";
 }
+
+/* Updates tuples in a table according to the given function, in all rows
+   which satisfy the given predicate.
+   Equivalent to SQL: UPDATE tbl_name SET mut WHERE pred */
+exports.update = function (tbl_name, mut, pred) {
+    if (tables.tbl_name !== undefined)
+	    tables.tbl_name.update_tuples(mut, pred);
+	else
+	    throw "Table " + tbl_name + " not found!";
+}
+
 /* Selects rows from a table.
    Equivalent to SQL: SELECT * FROM tbl_name WHERE pred */
 exports.select = function (tbl_name, pred_str) {
@@ -37,7 +48,7 @@ exports.select = function (tbl_name, pred_str) {
         pred_str = "true";
     }
 
-    pred = util.transform(pred_str, table.schema);
+    pred = util.transform_pred(pred_str, table.schema);
     if (table !== undefined)
         return table.tuples.filter(pred);
     else

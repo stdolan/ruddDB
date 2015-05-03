@@ -48,7 +48,7 @@ function zip(arrays) {
 /* transform takes a schema and a string, interprets the string as a function
    body, transforms it to a function that can be directly applied to tuples in
    the table. */
-function transform(func_str, schema) {
+function transform_pred(func_str, schema) {
 	
 	// This is so the regex doesn't need to think about the beginning of the string
 	func_str = " " + func_str + " ";
@@ -65,7 +65,25 @@ function transform(func_str, schema) {
     return pred;
 }
 
+function transform_mut(func_str, schema) {
+	
+	// This is so the regex doesn't need to think about the beginning of the string
+	func_str = " " + func_str + " ";
+	
+	for(var i = 0; i < schema.length; i++)
+	{
+		var name = schema.names[i];
+		var regexp = new RegExp("(\\W)" + name + "(\\W)", "g");
+		func_str = func_str.replace(regexp, "$1tup[" + i + "]$2");
+	}
+		
+    /* Reconstruct the original function and return it. */
+    eval("pred = function (tup) { " + func_str + "; }");
+    return pred;
+}
+
 module.exports.array_eq = array_eq;
 module.exports.array_deep_eq = array_deep_eq;
 module.exports.zip = zip;
-module.exports.transform = transform;
+module.exports.transform_pred = transform_pred;
+module.exports.transform_mut = transform_mut;
