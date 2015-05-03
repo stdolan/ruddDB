@@ -51,8 +51,16 @@ exports.select = function (tbl_name, pred_str) {
     }
 
     pred = util.transform_pred(pred_str, table.schema);
-    if (table !== undefined)
-        return table.tuples.filter(pred);
+    if (table !== undefined) {
+        var node = new Nodes.SelectNode(new Nodes.TableNode(table), pred_str);
+        var ret = [];
+        var curr = node.nextTuple();
+        while (curr !== null) {
+            ret.push(curr);
+            curr = node.nextTuple();
+        }
+        return ret;
+    }
     else
         throw "Table " + tbl_name + " not found!";
 }
