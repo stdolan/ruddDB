@@ -32,7 +32,9 @@ function TableNode(t) {
 	}
 }
 
-function SelectNode(child, pred) {
+function SelectNode(child, pred_str) {
+
+    var pred = util.transform_pred(pred_str, child.getSchema());
 
 	// eta reduction, yo
 	this.reset = child.reset;
@@ -79,16 +81,26 @@ function JoinNode(left, right) {
 	}
 }
 
-function ProjectNode(child, schemaMap) {
+// project is a function that transforms tuples
+function ProjectNode(child, schema, project_str) {
+
+    var project = util.transform_pred(project_str, schema);
 
 	this.reset = child.reset;
 
 	this.getSchema = function () {
-        // TODO
+        return schema;
 	}
 
 	this.nextTuple = function () {
-		// TODO
+		var tup = child.nextTuple();
+		if(tup === null)
+			return null;
+		var new_tup = project(tup);
+		if (!schema.matches_tuple(new_tup)) {
+            throw "Tuple doesn't match schema!";
+        }
+		return new_tup;
 	}
 }
 

@@ -1,6 +1,10 @@
 // db.js - The main database object in ruddDB
 var Table = require("./table");
+<<<<<<< HEAD
 var Nodes = require("./nodes");
+=======
+var util = require("./util");
+>>>>>>> e076de6ffd2fb8e9decd0673f261697c5022b5a5
 
 var tables = {};
 
@@ -41,16 +45,15 @@ exports.update = function (tbl_name, mut, pred) {
 
 /* Selects rows from a table.
    Equivalent to SQL: SELECT * FROM tbl_name WHERE pred */
-exports.select = function (tbl_name, pred) {
-    var table = tables[tbl_name];
+exports.select = function (tbl_name, pred_str) {
+    var table = tables.tbl_name;
 
     // If we didn't supply a predicate, return everything.
-    if (pred === undefined) {
-        pred = function (x) {return true;};
+    if (pred_str === undefined) {
+        pred_str = "true";
     }
-    else {
-        pred = table.transform_pred(pred);
-    }
+
+    pred = util.transform_pred(pred_str, table.schema);
     if (table !== undefined)
         return table.tuples.filter(pred);
     else
