@@ -46,7 +46,7 @@ function test_func(tup) {
 }
 
 var plan = new nodes.SelectNode(new nodes.JoinNode(new nodes.TableNode(table_a),
-        new nodes.TableNode(table_b)), test_func )
+        new nodes.TableNode(table_b)), "name.length === len")
 
 assert(util.array_eq(plan.nextTuple(), ['dog', 3]));
 assert(util.array_eq(plan.nextTuple(), ['cat', 3]));
@@ -82,12 +82,11 @@ db.insert("a", [5]);
 /* Test selects */
 console.log("Testing selects");
 assert(util.array_deep_eq(db.select("a"), [[3], [4], [5]]))
-assert(util.array_deep_eq(db.select("a", function (x) {return x > 3;}),
-                          [[4], [5]]))						  
+assert(util.array_deep_eq(db.select("a", "Num > 3"), [[4], [5]]))						  
 
 /* Test deletes */
 console.log("Testing deletes");
-db._delete("a", function (Num) {return Num > 4;});
+db._delete("a", "Num > 4");
 assert(util.array_deep_eq(db.select("a"), [[3], [4]]),
 		"Failed to delete with predicate!")
 db._delete("a");
