@@ -2,9 +2,10 @@
 var db = require("./db");
 var Schema = require("./schema");
 var Table = require("./table");
+var nodes = require("./nodes");
+var parser = require("./parser");
 var types = require("./types");
 var util = require("./util");
-var nodes = require("./nodes");
 
 function assert(condition, message) {
     if (!condition) {
@@ -45,9 +46,8 @@ function test_func(tup) {
 	return tup[0].length === tup[1];
 }
 
-var plan = new nodes.SelectNode(new nodes.JoinNode(new nodes.TableNode(table_a),
-        new nodes.TableNode(table_b)), "name.length === len")
-
+var plan_str = parser.parse("SELECT(JOIN(table_a, table_b), `name.length === len`)");
+eval("var plan = " + plan_str);
 assert(util.array_eq(plan.nextTuple(), ['dog', 3]));
 assert(util.array_eq(plan.nextTuple(), ['cat', 3]));
 assert(util.array_eq(plan.nextTuple(), ['giraffe', 7]));
@@ -62,8 +62,8 @@ for(var i = 0; i < 5; i++) {
 	table_r.insert_tuple([i * 10]);
 }
 
-var plan = new nodes.UnionNode(new nodes.TableNode(table_l),
-                               new nodes.TableNode(table_r));
+plan_str = parser.parse("UNION(table_l, table_r)");
+eval("plan = " + plan_str);
 							   
 for(var i = 0; i < 5; i++)
 	assert(util.array_eq(plan.nextTuple(), [i]));
@@ -92,5 +92,5 @@ assert(util.array_deep_eq(db.select("a"), [[3], [4]]),
 db._delete("a");
 assert(util.array_deep_eq(db.select("a"), []),
         "Failed to delete without predicate!")
-
+		
 console.log("All tests passed!");

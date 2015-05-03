@@ -22,21 +22,22 @@
 
 %%
 
-start_state : table_expr EOF { console.log($1); } ;
+start_state : table_expr EOF { return $1; } ;
 table_expr
     : SELECT L_PAREN table_expr COMMA FUNCTION R_PAREN
-	{ $$ = "sigma_" + $5 + "(" + $3 + ")"; }
+	{ $$ = "new nodes.SelectNode(" + $3 + ", '" + $5.substring(1, $5.length - 1) + "')"; }
 	| JOIN L_PAREN table_expr COMMA table_expr R_PAREN
-	{ $$ = "cross(" + $3 + ", " + $5 + ")"; }
+	{ $$ = "new nodes.JoinNode(" + $3 + "," + $5 + ")"; }
 	| PROJECT L_PAREN table_expr COMMA schema R_PAREN
-	{ $$ = "pi_" + $5 + "(" + $3 + ")"; }
+	{ $$ = "new nodes.ProjectNode(" + $3 + "," + $5 + ")"; }
 	| UNION L_PAREN table_expr COMMA table_expr R_PAREN
-	{ $$ = "union(" + $3 + ", " + $5 + ")"; }
+	{ $$ = "new nodes.UnionNode(" + $3 + "," + $5 + ")"; }
 	| IDENTIFIER
+	{ $$ = "new nodes.TableNode(" + $1 + ")"; }
 	;
 schema
     : L_BRACK id_list R_BRACK
-	{ $$ = "[" + $2 + "]"; }
+	{ $$ = "'[" + $2 + "]'"; }
 	| L_BRACK R_BRACK
 	{ $$ = "[]"; }
 	;
