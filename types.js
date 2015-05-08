@@ -6,6 +6,20 @@ var FLOAT = 1;
 var STRING = 2;
 var BOOLEAN = 3;
 
+// Mapping between string and types.
+var mapping = {
+	"INTEGER": 0,
+	"FLOAT": 1,
+	"STRING": 2,
+	"BOOLEAN": 3
+};
+
+// Given a string, returns the number corresponding to that type, undefined
+// if it is not a recognized type.
+module.exports.map_type = function(s) {
+	return mapping[s.toUpperCase()];
+}
+
 function is_type (val, type) {
 	switch(type) {
 		case INTEGER:
