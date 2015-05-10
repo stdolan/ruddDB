@@ -13,6 +13,7 @@ function assert(condition, message) {
     }
 }
 
+
 /* Check that the database exists */
 assert(db._is_loaded(), "Database failed to load!");
 
@@ -70,6 +71,34 @@ for(var i = 0; i < 5; i++)
 for(var i = 0; i < 5; i++)
 	assert(util.array_eq(plan.nextTuple(), [i * 10]));
 assert(plan.nextTuple() === null);
+
+/* Test folding node */
+
+var s = new Schema (['foo', 'bar'], [types.INTEGER, types.FLOAT])
+var t = new Table('MyTable', s);
+t.insert_tuple([0,1]);
+t.insert_tuple([0,2]);
+t.insert_tuple([0,4]);
+t.insert_tuple([1,3]);
+t.insert_tuple([1,3]);
+t.insert_tuple([2,0]);
+var tn = new nodes.TableNode(t);
+function g (tup) { return [tup[0]]; }
+function a1 (acc, tup) { if(acc === undefined) { return [1]; } return [acc[0] + 1]; }
+function a2 (acc, tup) { if(acc === undefined) { return [tup[1]]; } return [acc[0] + tup[1]]; }
+
+var fn1 = new nodes.FoldingNode(tn, g, a1);
+assert(util.array_deep_eq(fn1.nextTuple(), [0, 3]));
+assert(util.array_deep_eq(fn1.nextTuple(), [1, 2]));
+assert(util.array_deep_eq(fn1.nextTuple(), [2, 1]));
+assert(fn1.nextTuple() === null);
+
+tn.reset();
+var fn2 = new nodes.FoldingNode(tn, g, a2);
+assert(util.array_deep_eq(fn2.nextTuple(), [0, 7]));
+assert(util.array_deep_eq(fn2.nextTuple(), [1, 6]));
+assert(util.array_deep_eq(fn2.nextTuple(), [2, 0]));
+assert(fn2.nextTuple() === null);
 
 /* Test inserts */
 console.log("Testing inserts");

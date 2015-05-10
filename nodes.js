@@ -124,7 +124,72 @@ function UnionNode(left, right) {
 		throw "Schema do not match!";
 }
 
+// FoldingNode does an aggregation for functions that are 'fold-compatible';
+// that is, associative and commutative. Examples: sum, count, min, max, but
+// not average!
+// group_func takes a tuple, and spits out something used for grouping. for
+// most cases, this will be a subset of the columns. I suppose it could be used
+// to create arbitrary equivalance classes though.
+// fold_func takes an accumulated value (which may be undefined), and a tuple,
+// and folds the tuple into the accumulator. You should be thinking "things you
+// can pass foldl (for Haskell) or reduce (for Python).
+function FoldingNode(child, group_func, fold_func) {
+
+    var tuples_prepared = false;
+    var index = 0;
+
+    // TODO iterating through an array is O(n). idk how to hashmap in JS though :(
+	var grouping_vars = [];
+	var aggregate_vars = [];
+	
+	function prepare_tuples() {
+		var tup = child.nextTuple();
+		while(tup != null) {
+			var group_tup = group_func(tup);
+			var group_index = undefined;
+			for(var i = 0; i < grouping_vars.length; i++)
+				if(util.array_deep_eq(grouping_vars[i], group_tup))
+					group_index = i;
+			
+			if(group_index === undefined) {
+				group_index = i; // it should be grouping_vars.length
+				grouping_vars.push(group_tup);
+				aggregate_vars.push(undefined);
+			}
+			
+			aggregate_vars[group_index] = fold_func(aggregate_vars[group_index], tup);
+			tup = child.nextTuple();
+		}
+		
+		tuples_prepared = true;
+	}
+		
+    this.reset = function() {
+		child.reset();
+		tuples_prepared = false;
+	}
+
+    this.getSchema = function() {
+        // TODO
+    }
+
+	this.nextTuple = function() {
+		if(!tuples_prepared)
+			prepare_tuples()
+		
+		if(index == grouping_vars.length)
+			return null;
+		
+		var tup = grouping_vars[index].concat(aggregate_vars[index]);
+		index++;
+		return tup;
+		// TODO problem: gluing the tuples together will be tricky. what about
+		// the other vars that aren't grouped by or aggregates?
+	}	
+}
+
 module.exports.TableNode = TableNode;
 module.exports.SelectNode = SelectNode;
 module.exports.JoinNode = JoinNode;
 module.exports.UnionNode = UnionNode;
+module.exports.FoldingNode = FoldingNode;
