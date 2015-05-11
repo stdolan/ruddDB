@@ -1,6 +1,6 @@
 // db.js - The main database object in ruddDB
 var Table = require("./table");
-var Nodes = require("./nodes");
+var nodes = require("./nodes");
 var util = require("./util");
 
 var tables = {};
@@ -60,28 +60,62 @@ exports.update = function (tbl_name, mut, pred) {
     }
 }
 
-/* Selects rows from a table.
-   Equivalent to SQL: SELECT * FROM tbl_name WHERE pred */
-exports.select = function (tbl_name, pred) {
-    var table = tables[tbl_name];
 
-    // If we didn't supply a predicate, return everything.
+/* Helper function. If passed a table name, returns a table node, and if passed
+   a node, just returns it. */
+function resolve_table(arg) {
+	var table = tables[arg];
+	if(table !== undefined)
+		return new nodes.TableNode(table);
+	
+	// TODO make sure it's a node!
+	
+	return arg;
+}
+
+/* Given a tree of nodes, returns the resulting tables. */
+exports.eval = function (node) {
+	var ret = [];
+	var tup = node.next_tuple();
+	while(tup !== null) {
+		ret.push(tup);
+		tup = node.next_tuple();
+	}
+	
+	return ret;
+}		
+
+/* Selects rows from a table.
+   Equivalent to SQL: SELECT * FROM child WHERE pred */
+exports.select = function (child, pred) {
+	
+	// If we didn't supply a predicate, return everything.
     if (pred === undefined) {
         pred = function () {return true;};
     }
+	
+	return new nodes.SelectNode(resolve_table(child), pred); 
+}
 
-    if (table !== undefined) {
-        var node = new Nodes.SelectNode(new Nodes.TableNode(table), pred);
-        var ret = [];
-        var curr = node.next_tuple();
-        while (curr !== null) {
-            ret.push(curr);
-            curr = node.next_tuple();
-        }
-        return ret;
-    }
-    else
-        throw "Table " + tbl_name + " not found!";
+exports.join = function(left_child, right_child, join_type) {
+	
+	if(!join_type || join_type === "cross")
+		return new nodes.JoinNode(resolve_table(left_child), resolve_table(right_child));
+		
+	throw "Join type \"" + join_type + "\" is unsupported";
+}
+
+// TODO making the user specify the schema is gross. can we do better?
+exports.project = function(child, schema, project) {
+	return new nodes.ProjectNode(resolve_table(child), schema, project);
+}
+
+exports.union = function(left_child, right_child) {
+	return new nodes.UnionNode(resolve_table(left_child), resolve_table(right_child));
+}
+
+exports.fold = function(child, group, fold) {
+	return new nodes.FoldingNode(resolve_table(child), group, fold);
 }
 
 // Debug Functions
@@ -92,20 +126,4 @@ exports._is_loaded =  function() {
 
 exports._get_tables = function () {
     return tables;
-}
-
-exports.join = function(left_tbl_name, right_tbl_name, join_type) {
-    if (!join_type || join_type === "cross") {
-        var node = new Nodes.JoinNode(new Nodes.TableNode(tables[left_tbl_name]),
-            new Nodes.TableNode(tables[right_tbl_name]));
-        var curr = node.nextTuple();
-        if (curr === null)
-            return null;
-        var ret = [];
-        while (curr !== null) {
-            ret.push(curr);
-            curr = node.nextTuple();
-        }
-        return ret;
-    }
 }

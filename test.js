@@ -110,28 +110,28 @@ db.insert("a", [5]);
 
 /* Test selects */
 console.log("Testing selects");
-assert(util.array_deep_eq(db.select("a"), [[3], [4], [5]]))
-assert(util.array_deep_eq(db.select("a", "Num > 3"), [[4], [5]]))
-assert(util.array_deep_eq(db.select("a", function (Num) {return Num > 3;}),
+assert(util.array_deep_eq(db.eval(db.select("a")), [[3], [4], [5]]))
+assert(util.array_deep_eq(db.eval(db.select("a", "Num > 3")), [[4], [5]]))
+assert(util.array_deep_eq(db.eval(db.select("a", function (Num) {return Num > 3;})),
                                     [[4], [5]]))				  
 
 /* Test updates */
 console.log("Testing updates");
 db.update("a", "Num = 6", "Num > 4");
-assert(util.array_deep_eq(db.select("a"), [[3], [4], [6]]))
+assert(util.array_deep_eq(db.eval(db.select("a")), [[3], [4], [6]]))
 db.update("a", function (Num) {Num = 5;}, function (Num) {return Num > 5});
-assert(util.array_deep_eq(db.select("a"), [[3], [4], [5]])) 
+assert(util.array_deep_eq(db.eval(db.select("a")), [[3], [4], [5]])) 
 
 /* Test deletes */
 console.log("Testing deletes");
 db.delete("a", "Num > 4");
-assert(util.array_deep_eq(db.select("a"), [[3], [4]]),
+assert(util.array_deep_eq(db.eval(db.select("a")), [[3], [4]]),
 		"Failed to delete with predicate!")
 db.delete("a", function (Num) {return Num > 3;});
-assert(util.array_deep_eq(db.select("a"), [[3]]),
+assert(util.array_deep_eq(db.eval(db.select("a")), [[3]]),
 		"Failed to delete with predicate!")
 db.delete("a");
-assert(util.array_deep_eq(db.select("a"), []),
+assert(util.array_deep_eq(db.eval(db.select("a")), []),
         "Failed to delete without predicate!")
 		
 console.log("All tests passed!");

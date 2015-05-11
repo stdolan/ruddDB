@@ -20,7 +20,6 @@ module.exports = function Schema (names, types) {
 		
 		for(var i = 0; i < t_len; i++)
 			if(!types_.is_type(tuple[i], types[i])) {
-                console.log(tuple);
 				return false;
             }
 			

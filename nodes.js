@@ -2,6 +2,8 @@
 
 var util = require('./util');
 
+// TODO materialized node? just makes an array of tuples
+
 /*
  * All nodes must have the following functions:
  * reset() - resets the stream of tuples to its start
