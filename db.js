@@ -14,9 +14,17 @@ exports.create = function (tbl_name, schema) {
 
 /* Inserts a row into a table.
    Equivalent to SQL: INSERT INTO tbl_name VALUE tup */
-exports.insert = function (tbl_name, tup) {
+exports.insert = function (tbl_name, tups) {
     if (tables[tbl_name] !== undefined) {
-        tables[tbl_name].insert_tuple(tup);
+        if (tups.length == 1) {
+            tables[tbl_name].insert_tuple(tups);
+        }
+        else {
+            for (var i = 0; i < tups.length; i++) {
+                tables[tbl_name].insert_tuple(tups[i]);
+            }
+            console.log("Inserted " + tups.length + " rows!");
+        }
     }
     else {
         throw "Table " + tbl_name + " not found!";
