@@ -38,8 +38,8 @@ module.exports = function Schema (names, types) {
     /* This function gets the index of a given column name in the schema */
     this.get_index_of_col = function (colname) {
         ind = this.names.indexOf(colname);
-        if (ind == undefined) {
-            throw "Column not found!";
+        if (ind == -1) {
+            throw "Column " + colname + " not found!";
         }
         return ind;
     }

@@ -49,10 +49,10 @@ function test_func(tup) {
 
 var plan_str = parser.parse("SELECT(JOIN(table_a, table_b), `name.length === len`)");
 eval("var plan = " + plan_str);
-assert(util.array_eq(plan.nextTuple(), ['dog', 3]));
-assert(util.array_eq(plan.nextTuple(), ['cat', 3]));
-assert(util.array_eq(plan.nextTuple(), ['giraffe', 7]));
-assert(plan.nextTuple() === null);
+assert(util.array_eq(plan.next_tuple(), ['dog', 3]));
+assert(util.array_eq(plan.next_tuple(), ['cat', 3]));
+assert(util.array_eq(plan.next_tuple(), ['giraffe', 7]));
+assert(plan.next_tuple() === null);
 
 var sch = new Schema(['foo'], [types.INTEGER]);
 var table_l = new Table('Left', sch);
@@ -67,10 +67,10 @@ plan_str = parser.parse("UNION(table_l, table_r)");
 eval("plan = " + plan_str);
 							   
 for(var i = 0; i < 5; i++)
-	assert(util.array_eq(plan.nextTuple(), [i]));
+	assert(util.array_eq(plan.next_tuple(), [i]));
 for(var i = 0; i < 5; i++)
-	assert(util.array_eq(plan.nextTuple(), [i * 10]));
-assert(plan.nextTuple() === null);
+	assert(util.array_eq(plan.next_tuple(), [i * 10]));
+assert(plan.next_tuple() === null);
 
 /* Test folding node */
 
@@ -88,17 +88,17 @@ function a1 (acc, tup) { if(acc === undefined) { return [1]; } return [acc[0] + 
 function a2 (acc, tup) { if(acc === undefined) { return [tup[1]]; } return [acc[0] + tup[1]]; }
 
 var fn1 = new nodes.FoldingNode(tn, g, a1);
-assert(util.array_deep_eq(fn1.nextTuple(), [0, 3]));
-assert(util.array_deep_eq(fn1.nextTuple(), [1, 2]));
-assert(util.array_deep_eq(fn1.nextTuple(), [2, 1]));
-assert(fn1.nextTuple() === null);
+assert(util.array_deep_eq(fn1.next_tuple(), [0, 3]));
+assert(util.array_deep_eq(fn1.next_tuple(), [1, 2]));
+assert(util.array_deep_eq(fn1.next_tuple(), [2, 1]));
+assert(fn1.next_tuple() === null);
 
 tn.reset();
 var fn2 = new nodes.FoldingNode(tn, g, a2);
-assert(util.array_deep_eq(fn2.nextTuple(), [0, 7]));
-assert(util.array_deep_eq(fn2.nextTuple(), [1, 6]));
-assert(util.array_deep_eq(fn2.nextTuple(), [2, 0]));
-assert(fn2.nextTuple() === null);
+assert(util.array_deep_eq(fn2.next_tuple(), [0, 7]));
+assert(util.array_deep_eq(fn2.next_tuple(), [1, 6]));
+assert(util.array_deep_eq(fn2.next_tuple(), [2, 0]));
+assert(fn2.next_tuple() === null);
 
 /* Test inserts */
 console.log("Testing inserts");

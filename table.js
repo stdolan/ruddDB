@@ -43,21 +43,38 @@ module.exports = function Table (tbl_name, schema) {
 	
 	/* delete_pred deletes tuples from the table which satisfy the predicate.
 	   If the predicate is empty, all tuples are deleted. */
-	this.delete_tuples = function (pred_str) {
-	    // If no predicate was supplied, delete everything.
-	    if (pred_str === undefined) {
-		    pred_str = "true";
-		}
-		
-		pred = util.transform_pred(pred_str, schema);
+	this.delete_tuples = function (pred) {
+
+        if (typeof pred === "string") {
+            pred = util.transform_pred_str(pred, schema);
+        }
+        else {
+            pred = util.transform_pred(pred, schema);
+        }
+
+
 		this.tuples = this.tuples.filter(function (t) { return !pred(t); });
 	}
 
-    this.update_tuples = function(mut_str, pred_str) {
+    this.update_tuples = function(mut, pred) {
         /* Transform the given functions, then just update each record
            one by one. */
-        mut = util.transform_mut(mut_str, schema);
-        pred = util.transform_pred(pred_str, schema);
+        
+        if (typeof pred === "string") {
+            pred = util.transform_pred_str(pred, schema);
+        }
+        else {
+            pred = util.transform_pred(pred, schema);
+        }
+
+
+        if (typeof mut === "string") {
+            mut = util.transform_mut_str(mut, schema);
+        }
+        else {
+            mut = util.transform_pred(mut, schema);
+        }
+
         var tuple;
         for (var i = 0; i < this.tuples.length; i++) {
             tuple = this.tuples[i];

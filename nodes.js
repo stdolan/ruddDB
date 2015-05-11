@@ -5,8 +5,8 @@ var util = require('./util');
 /*
  * All nodes must have the following functions:
  * reset() - resets the stream of tuples to its start
- * getSchema() - returns the schema of the returned tuples
- * nextTuple() - returns the next tuple in the stream, or null if the stream
+ * get_schema() - returns the schema of the returned tuples
+ * next_tuple() - returns the next tuple in the stream, or null if the stream
  *     is exhausted. If this is called multiple times after the stream is
  *     exhausted, it must not crash.
  * Additionally, they must be prepared upon creation, without an init method.
@@ -20,59 +20,68 @@ function TableNode(t) {
 		index = 0;
 	}
 	
-	this.getSchema = function () {
+	this.get_schema = function () {
 		return table.schema;
 	}
 	
-	this.nextTuple = function () {
-		if(index < table.tuples.length)
+	this.next_tuple = function () {
+		if(index < table.tuples.length) {
 			return table.tuples[index++];
-		else
+        }
+		else {
 			return null;
+        }
 	}
 }
 
-function SelectNode(child, pred_str) {
+function SelectNode(child, pred) {
 
-    var pred = util.transform_pred(pred_str, child.getSchema());
+    if (typeof pred === "string") {
+        pred = util.transform_pred_str(pred, child.get_schema());
+    }
+    else {
+        pred = util.transform_pred(pred, child.get_schema());
+    }
 
 	// eta reduction, yo
 	this.reset = child.reset;
-	this.getSchema = child.getSchema;
+	this.get_schema = child.get_schema;
 	
-	this.nextTuple = function () {
+	this.next_tuple = function () {
 		while(true) {
-			var tuple = child.nextTuple();
-			if(tuple === null || pred(tuple))
+			var tuple = child.next_tuple();
+
+			if(tuple === null || pred(tuple)) {
 				return tuple;
+            }
 		}
 	}
 }
 
 function JoinNode(left, right) {
 	
-	var currLeft = left.nextTuple();
+	var currLeft = left.next_tuple();
 	
 	this.reset = function () {
 		left.reset();
 		right.reset();
-		currLeft = left.nextTuple();
+		currLeft = left.next_tuple();
 	}
 	
-	this.getSchema = function () {
-		return left.getSchema().concat(right.getSchema());
+	this.get_schema = function () {
+		return left.get_schema().concat(right.get_schema());
 	}
 
-	this.nextTuple = function () {
+	this.next_tuple = function () {
 		// If the left child is empty
 		if(currLeft === null)
 			return null;
 		
-		var nextRight = right.nextTuple();
+		var nextRight = right.next_tuple();
 		if(nextRight === null) { // we exhausted the right
 			right.reset();
-			nextRight = right.nextTuple();
-			currLeft = left.nextTuple();
+			nextRight = right.next_tuple();
+			currLeft = left.next_tuple();
 			if(currLeft === null)
 				return null;
 		}
@@ -88,12 +97,12 @@ function ProjectNode(child, schema, project_str) {
 
 	this.reset = child.reset;
 
-	this.getSchema = function () {
+	this.get_schema = function () {
         return schema;
 	}
 
-	this.nextTuple = function () {
-		var tup = child.nextTuple();
+	this.next_tuple = function () {
+		var tup = child.next_tuple();
 		if(tup === null)
 			return null;
 		var new_tup = project(tup);
@@ -111,16 +120,16 @@ function UnionNode(left, right) {
 		right.reset();
 	}
 	
-	this.getSchema = left.getSchema;
+	this.get_schema = left.get_schema;
 
-	this.nextTuple = function() {
-	    var tup = left.nextTuple();
+	this.next_tuple = function() {
+	    var tup = left.next_tuple();
 		if(tup !== null)
 			return tup;
-		return right.nextTuple();
+		return right.next_tuple();
 	}
 	
-	if(!left.getSchema().equals(right.getSchema()))
+	if(!left.get_schema().equals(right.get_schema()))
 		throw "Schema do not match!";
 }
 
@@ -143,7 +152,7 @@ function FoldingNode(child, group_func, fold_func) {
 	var aggregate_vars = [];
 	
 	function prepare_tuples() {
-		var tup = child.nextTuple();
+		var tup = child.next_tuple();
 		while(tup != null) {
 			var group_tup = group_func(tup);
 			var group_index = undefined;
@@ -158,7 +167,7 @@ function FoldingNode(child, group_func, fold_func) {
 			}
 			
 			aggregate_vars[group_index] = fold_func(aggregate_vars[group_index], tup);
-			tup = child.nextTuple();
+			tup = child.next_tuple();
 		}
 		
 		tuples_prepared = true;
@@ -169,11 +178,11 @@ function FoldingNode(child, group_func, fold_func) {
 		tuples_prepared = false;
 	}
 
-    this.getSchema = function() {
+    this.get_schema = function() {
         // TODO
     }
 
-	this.nextTuple = function() {
+	this.next_tuple = function() {
 		if(!tuples_prepared)
 			prepare_tuples()
 		

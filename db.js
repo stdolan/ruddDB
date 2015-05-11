@@ -15,49 +15,60 @@ exports.create = function (tbl_name, schema) {
 /* Inserts a row into a table.
    Equivalent to SQL: INSERT INTO tbl_name VALUE tup */
 exports.insert = function (tbl_name, tup) {
-    if (tables[tbl_name] !== undefined)
+    if (tables[tbl_name] !== undefined) {
         tables[tbl_name].insert_tuple(tup);
-    else
+    }
+    else {
         throw "Table " + tbl_name + " not found!";
+    }
 }
 
 /* Deletes tuples from a table that satisfy the given predicate
    Equivalent to SQL: DELETE FROM tbl_name WHERE pred */
 exports.delete = function (tbl_name, pred) {
-    if (tables[tbl_name] !== undefined)
+
+    // If we didn't supply a predicate, delete everything.
+    if (pred === undefined) {
+        pred = function () {return true;};
+    }
+
+    if (tables[tbl_name] !== undefined) {
 	    tables[tbl_name].delete_tuples(pred);
-	else
+    }
+	else {
 	    throw "Table " + tbl_name + " not found!";
+    }
 }
 
 /* Updates tuples in a table according to the given function, in all rows
    which satisfy the given predicate.
    Equivalent to SQL: UPDATE tbl_name SET mut WHERE pred */
 exports.update = function (tbl_name, mut, pred) {
-    if (tables[tbl_name] !== undefined)
+    if (tables[tbl_name] !== undefined) {
 	    tables[tbl_name].update_tuples(mut, pred);
-	else
+    }
+	else {
 	    throw "Table " + tbl_name + " not found!";
+    }
 }
 
 /* Selects rows from a table.
    Equivalent to SQL: SELECT * FROM tbl_name WHERE pred */
-exports.select = function (tbl_name, pred_str) {
+exports.select = function (tbl_name, pred) {
     var table = tables[tbl_name];
 
     // If we didn't supply a predicate, return everything.
-    if (pred_str === undefined) {
-        pred_str = "true";
+    if (pred === undefined) {
+        pred = function () {return true;};
     }
 
-    pred = util.transform_pred(pred_str, table.schema);
     if (table !== undefined) {
-        var node = new Nodes.SelectNode(new Nodes.TableNode(table), pred_str);
+        var node = new Nodes.SelectNode(new Nodes.TableNode(table), pred);
         var ret = [];
-        var curr = node.nextTuple();
+        var curr = node.next_tuple();
         while (curr !== null) {
             ret.push(curr);
-            curr = node.nextTuple();
+            curr = node.next_tuple();
         }
         return ret;
     }
