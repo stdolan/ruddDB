@@ -1,0 +1,20 @@
+var sch = new Schema(data[0], sch_types);
+
+db.create("real_estate", sch);
+
+db.insert("real_estate", data.slice(1));
+
+has_lots_of_beds = function (beds) {return beds > 6;};
+db.select("real_estate", has_lots_of_beds);
+
+is_mf = function (type) {return type == "Multi-Family";};
+change_to_md = function (type) {type = "Multidwelling";};
+is_md = function (type) {return type == "Multidwelling";};
+db.update("real_estate", change_to_md, is_mf);
+db.select("real_estate", is_mf); /* RETURN NOTHING* */
+db.select("real_estate", is_md);
+
+db.delete("real_estate", has_lots_of_beds);
+db.select("real_estate", has_lots_of_beds);
+
+
