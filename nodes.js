@@ -204,3 +204,4 @@ module.exports.SelectNode = SelectNode;
 module.exports.JoinNode = JoinNode;
 module.exports.UnionNode = UnionNode;
 module.exports.FoldingNode = FoldingNode;
+module.exports.ProjectNode = ProjectNode;
