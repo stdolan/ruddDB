@@ -2,6 +2,7 @@
 var Table = require("./table");
 var nodes = require("./nodes");
 var util = require("./util");
+var fs = require("fs");
 
 var tables = {};
 
@@ -116,6 +117,19 @@ exports.union = function(left_child, right_child) {
 
 exports.fold = function(child, group, fold) {
 	return new nodes.FoldingNode(resolve_table(child), group, fold);
+}
+
+// Writes the entirety of the tables to the file, sans Table class functions.
+exports.dump = function() {
+    var filename = "db_" + Date.now() + ".dat";
+    var data = [];
+    for (table in tables)
+        // See _get_data() for more on how the data is structured
+        data.push(tables[table]._get_data());
+    fs.writeFile(filename, data, function(err) {
+        if (err) throw err;
+        return "Database written to file " + filename + ".\n";
+    });
 }
 
 // Debug Functions
