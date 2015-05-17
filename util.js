@@ -48,7 +48,7 @@ function zip(arrays) {
 function transform_pred(input, schema) {
 	if(typeof input === "string") {
 		var body = _transform_str(input, schema);
-		eval("pred = function (tup) { return" + body + "}");
+		eval("pred = function (tup) { return " + body + "}");
 		return pred;
 	} else {
 		return _transform_func(input, schema);
@@ -62,6 +62,48 @@ function transform_mut(input, schema) {
 		return mut;
 	} else {
 		return _transform_func(input, schema);
+	}
+}
+
+// ACC + num
+function transform_fold(input, schema) {
+	if(typeof input === "string") {
+		var body = _transform_str(input, schema);
+		
+		// Now we have to look through the string and implement the accumulator
+		var tuple_index = 0;
+		var parens = 0;
+		var new_body = '';
+		var default_tuple = [];
+		for(var i = 0; i < body.length; i++) {
+			var c = body[i];
+			if(c == '@')
+				new_body += "acc[" + tuple_index + "]";
+			else if(c == '{') {
+				i++; // advance past the {
+				var default_val = '';
+				while(body[i] != '}') {
+				    default_val += body[i];
+					i++;
+				}
+				default_tuple[tuple_index] = default_val;
+			}
+			else
+				new_body += c;
+				
+			if (c == '(')
+				parens++;
+			else if(c == ')')
+				parens--;
+			else if(c == ',' && parens == 0)
+				tuple_index++;
+		}
+		
+		eval("func = function (acc, tup) { if(acc === undefined) { acc = [" +
+		    default_tuple + "]; } return [" + new_body + "]; }");
+		return func;
+	} else {
+		return _transform_func(input, schema); // TODO should this get the acc treatment?
 	}
 }
 
@@ -120,3 +162,4 @@ module.exports.array_deep_eq = array_deep_eq;
 module.exports.zip = zip;
 module.exports.transform_pred = transform_pred;
 module.exports.transform_mut = transform_mut;
+module.exports.transform_fold = transform_fold;

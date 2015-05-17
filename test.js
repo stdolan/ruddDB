@@ -119,5 +119,17 @@ assert(util.array_deep_eq(db.eval(db.select("a")), [[1]]),
 db.delete("a");
 assert(util.array_deep_eq(db.eval(db.select("a")), []),
         "Failed to delete without predicate!")
+
+		
+// TODO wrap this into the query tests. right now, i'm just putting it here
+// to demonstrate proper fold usage
+console.log("Testing misc");
+db.create('a', new Schema(['num'], [types.INTEGER]));
+db.insert('a', [[3], [4], [5]]);
+assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '@ + num {0}')), [[1, 8],[0,4]]));
+assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '{0} @ + num')), [[1, 8],[0,4]]));
+// don't do this one! but it works... >:]
+assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '@ + {0}num')), [[1, 8],[0,4]]));
+
 		
 console.log("All tests passed!");

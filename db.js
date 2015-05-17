@@ -125,7 +125,13 @@ exports.union = function(left_child, right_child) {
 }
 
 exports.fold = function(child, group, fold) {
-	return new nodes.FoldingNode(resolve_table(child), group, fold);
+	
+	child = resolve_table(child);
+	
+	group = util.transform_pred(group, child.get_schema());
+	fold = util.transform_fold(fold, child.get_schema());
+	
+	return new nodes.FoldingNode(child, group, fold);
 }
 
 // Writes the entirety of the tables to the file, sans Table class functions.
