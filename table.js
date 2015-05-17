@@ -26,27 +26,27 @@ function make_schema(s) {
 module.exports = function Table (tbl_name, schema) {
     if (typeof schema === "string")
         schema = make_schema(schema);
-	
+
     this.schema = schema;
     this.tbl_name = tbl_name;
     this.tuples = [];
-    
+
     /* insert_tuple checks if tup matches the table's schema, then pushes
        the tuple into the table's tuple array if it does. */
     this.insert_tuple = function (tup) {
         // If the tuple doesn't match the schema, it's an error.
-		if (!schema.matches_tuple(tup)) {
+        if (!schema.matches_tuple(tup)) {
             console.log(tup);
             throw "Tuple doesn't match schema!";
         }
         this.tuples.push(tup);
     }
-	
-	/* delete_pred deletes tuples from the table which satisfy the predicate.
-	   If the predicate is empty, all tuples are deleted. */
-	this.delete_tuples = function (pred) {
-		this.tuples = this.tuples.filter(function (t) { return !pred(t); });
-	}
+
+    /* delete_pred deletes tuples from the table which satisfy the predicate.
+       If the predicate is empty, all tuples are deleted. */
+    this.delete_tuples = function (pred) {
+        this.tuples = this.tuples.filter(function (t) { return !pred(t); });
+    }
 
     this.update_tuples = function(mut, pred) {
         /* Transform the given functions, then just update each record

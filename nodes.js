@@ -12,118 +12,118 @@ var util = require('./util');
  *     is exhausted. If this is called multiple times after the stream is
  *     exhausted, it must not crash.
  * Additionally, they must be prepared upon creation, without an init method.
- */     
+ */
 
 function TableNode(t) {
-	var table = t;
+    var table = t;
     var index = 0;
-	
-	this.reset = function () {
-		index = 0;
-	}
-	
-	this.get_schema = function () {
-		return table.schema;
-	}
-	
-	this.next_tuple = function () {
-		if(index < table.tuples.length) {
-			return table.tuples[index++];
+
+    this.reset = function () {
+        index = 0;
+    }
+
+    this.get_schema = function () {
+        return table.schema;
+    }
+
+    this.next_tuple = function () {
+        if(index < table.tuples.length) {
+            return table.tuples[index++];
         }
-		else {
-			return null;
+        else {
+            return null;
         }
-	}
+    }
 }
 
 function SelectNode(child, pred) {
 
-	// eta reduction, yo
-	this.reset = child.reset;
-	this.get_schema = child.get_schema;
-	
-	this.next_tuple = function () {
-		while(true) {
-			var tuple = child.next_tuple();
+    // eta reduction, yo
+    this.reset = child.reset;
+    this.get_schema = child.get_schema;
 
-			if(tuple === null || pred(tuple)) {
-				return tuple;
+    this.next_tuple = function () {
+        while(true) {
+            var tuple = child.next_tuple();
+
+            if(tuple === null || pred(tuple)) {
+                return tuple;
             }
-		}
-	}
+        }
+    }
 }
 
 function JoinNode(left, right) {
-	
-	var currLeft = left.next_tuple();
-	
-	this.reset = function () {
-		left.reset();
-		right.reset();
-		currLeft = left.next_tuple();
-	}
-	
-	this.get_schema = function () {
-		return left.get_schema().concat(right.get_schema());
-	}
 
-	this.next_tuple = function () {
-		// If the left child is empty
-		if(currLeft === null)
-			return null;
-		
-		var nextRight = right.next_tuple();
-		if(nextRight === null) { // we exhausted the right
-			right.reset();
-			nextRight = right.next_tuple();
-			currLeft = left.next_tuple();
-			if(currLeft === null)
-				return null;
-		}
-		
-		return currLeft.concat(nextRight);
-	}
+    var currLeft = left.next_tuple();
+
+    this.reset = function () {
+        left.reset();
+        right.reset();
+        currLeft = left.next_tuple();
+    }
+
+    this.get_schema = function () {
+        return left.get_schema().concat(right.get_schema());
+    }
+
+    this.next_tuple = function () {
+        // If the left child is empty
+        if(currLeft === null)
+            return null;
+
+        var nextRight = right.next_tuple();
+        if(nextRight === null) { // we exhausted the right
+            right.reset();
+            nextRight = right.next_tuple();
+            currLeft = left.next_tuple();
+            if(currLeft === null)
+                return null;
+        }
+
+        return currLeft.concat(nextRight);
+    }
 }
 
 // project is a function that transforms tuples
 function ProjectNode(child, schema, project) {
 
-	this.reset = child.reset;
+    this.reset = child.reset;
 
-	this.get_schema = function () {
+    this.get_schema = function () {
         return schema;
-	}
+    }
 
-	this.next_tuple = function () {
-		var tup = child.next_tuple();
-		if(tup === null)
-			return null;
-		var new_tup = project(tup);
-		if (!schema.matches_tuple(new_tup)) {
+    this.next_tuple = function () {
+        var tup = child.next_tuple();
+        if(tup === null)
+            return null;
+        var new_tup = project(tup);
+        if (!schema.matches_tuple(new_tup)) {
             throw "Tuple doesn't match schema!";
         }
-		return new_tup;
-	}
+        return new_tup;
+    }
 }
 
 function UnionNode(left, right) {
 
     this.reset = function() {
-		left.reset();
-		right.reset();
-	}
-	
-	this.get_schema = left.get_schema;
+        left.reset();
+        right.reset();
+    }
 
-	this.next_tuple = function() {
-	    var tup = left.next_tuple();
-		if(tup !== null)
-			return tup;
-		return right.next_tuple();
-	}
-	
-	if(!left.get_schema().equals(right.get_schema()))
-		throw "Schema do not match!";
+    this.get_schema = left.get_schema;
+
+    this.next_tuple = function() {
+        var tup = left.next_tuple();
+        if(tup !== null)
+            return tup;
+        return right.next_tuple();
+    }
+
+    if(!left.get_schema().equals(right.get_schema()))
+        throw "Schema do not match!";
 }
 
 // FoldingNode does an aggregation for functions that are 'fold-compatible';
@@ -141,53 +141,53 @@ function FoldingNode(child, group_func, fold_func) {
     var index = 0;
 
     // TODO iterating through an array is O(n). idk how to hashmap in JS though :(
-	var grouping_vars = [];
-	var aggregate_vars = [];
-	
-	function prepare_tuples() {
-		var tup = child.next_tuple();
-		while(tup != null) {
-			var group_tup = group_func(tup);
-			var group_index = undefined;
-			for(var i = 0; i < grouping_vars.length; i++)
-				if(util.array_deep_eq(grouping_vars[i], group_tup))
-					group_index = i;
-			
-			if(group_index === undefined) {
-				group_index = i; // it should be grouping_vars.length
-				grouping_vars.push(group_tup);
-				aggregate_vars.push(undefined);
-			}
-			
-			aggregate_vars[group_index] = fold_func(aggregate_vars[group_index], tup);
-			tup = child.next_tuple();
-		}
-		
-		tuples_prepared = true;
-	}
-		
+    var grouping_vars = [];
+    var aggregate_vars = [];
+
+    function prepare_tuples() {
+        var tup = child.next_tuple();
+        while(tup != null) {
+            var group_tup = group_func(tup);
+            var group_index = undefined;
+            for(var i = 0; i < grouping_vars.length; i++)
+                if(util.array_deep_eq(grouping_vars[i], group_tup))
+                    group_index = i;
+
+            if(group_index === undefined) {
+                group_index = i; // it should be grouping_vars.length
+                grouping_vars.push(group_tup);
+                aggregate_vars.push(undefined);
+            }
+
+            aggregate_vars[group_index] = fold_func(aggregate_vars[group_index], tup);
+            tup = child.next_tuple();
+        }
+
+        tuples_prepared = true;
+    }
+
     this.reset = function() {
-		child.reset();
-		tuples_prepared = false;
-	}
+        child.reset();
+        tuples_prepared = false;
+    }
 
     this.get_schema = function() {
         // TODO
     }
 
-	this.next_tuple = function() {
-		if(!tuples_prepared)
-			prepare_tuples()
-		
-		if(index == grouping_vars.length)
-			return null;
-		
-		var tup = grouping_vars[index].concat(aggregate_vars[index]);
-		index++;
-		return tup;
-		// TODO problem: gluing the tuples together will be tricky. what about
-		// the other vars that aren't grouped by or aggregates?
-	}	
+    this.next_tuple = function() {
+        if(!tuples_prepared)
+            prepare_tuples()
+
+        if(index == grouping_vars.length)
+            return null;
+
+        var tup = grouping_vars[index].concat(aggregate_vars[index]);
+        index++;
+        return tup;
+        // TODO problem: gluing the tuples together will be tricky. what about
+        // the other vars that aren't grouped by or aggregates?
+    }
 }
 
 module.exports.TableNode = TableNode;

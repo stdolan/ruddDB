@@ -15,19 +15,19 @@ function assert(condition, message) {
 
 // TODO test unordered results somehow?
 function test_plan(plan, expected) {
-	var actual = [];
-	var tup = plan.next_tuple();
-	while(tup !== null) {
-		actual.push(tup);
-		tup = plan.next_tuple();
-	}
-	
-	if(!util.array_deep_eq(actual, expected)) {
-		console.log("Results differ from expected!");
-		console.log(actual);
-		console.log(expected);
-		assert(false);
-	}
+    var actual = [];
+    var tup = plan.next_tuple();
+    while(tup !== null) {
+        actual.push(tup);
+        tup = plan.next_tuple();
+    }
+
+    if(!util.array_deep_eq(actual, expected)) {
+        console.log("Results differ from expected!");
+        console.log(actual);
+        console.log(expected);
+        assert(false);
+    }
 }
 
 /* Check that the database exists */
@@ -69,8 +69,8 @@ plan = new nodes.JoinNode(new nodes.TableNode(table_a),
                           new nodes.TableNode(table_b));
 test_plan(plan, [['dog', 3], ['dog', 7], ['dog', 2],
                  ['cat', 3], ['cat', 7], ['cat', 2],
-				 ['giraffe', 3], ['giraffe', 7], ['giraffe', 2]]);
-				 
+                 ['giraffe', 3], ['giraffe', 7], ['giraffe', 2]]);
+
 console.log("Testing union nodes");
 plan = new nodes.UnionNode(new nodes.TableNode(table_b),
                            new nodes.TableNode(table_c));
@@ -80,15 +80,15 @@ console.log("Testing project nodes");
 plan = new nodes.ProjectNode(
     new nodes.TableNode(table_b),
     new Schema(['squared', 'even?'], [types.INTEGER, types.BOOLEAN]),
-	function (tup) { var x = tup[0]; return [x * x, x % 2 === 0]; });
+    function (tup) { var x = tup[0]; return [x * x, x % 2 === 0]; });
 test_plan(plan, [[9, false], [49, false], [4, true]]);
 
 console.log("Testing folding nodes");
 plan = new nodes.FoldingNode(
     new nodes.TableNode(table_a),
-	function (tup) { return [tup[0].length]; },
-	function (acc, tup) { if(acc === undefined) { acc = ['']; }
-	                      return [acc[0] + tup[0]]; });
+    function (tup) { return [tup[0].length]; },
+    function (acc, tup) { if(acc === undefined) { acc = ['']; }
+                          return [acc[0] + tup[0]]; });
 test_plan(plan, [[3, 'dogcat'], [7, 'giraffe']]);
 
 // TODO test queries! db.select is different from SelectNode...
@@ -112,15 +112,15 @@ assert(util.array_deep_eq(db.eval(db.select("a")), [[0], [1], [2], [2]]));
 console.log("Testing deletes");
 db.delete("a", "Num > 1");
 assert(util.array_deep_eq(db.eval(db.select("a")), [[0], [1]]),
-		"Failed to delete with predicate!")
+        "Failed to delete with predicate!")
 db.delete("a", "Num == 0");
 assert(util.array_deep_eq(db.eval(db.select("a")), [[1]]),
-		"Failed to delete with predicate!")
+        "Failed to delete with predicate!")
 db.delete("a");
 assert(util.array_deep_eq(db.eval(db.select("a")), []),
         "Failed to delete without predicate!")
 
-		
+
 // TODO wrap this into the query tests. right now, i'm just putting it here
 // to demonstrate proper fold usage
 console.log("Testing misc");
@@ -128,8 +128,8 @@ db.create('a', new Schema(['num'], [types.INTEGER]));
 db.insert('a', [[3], [4], [5]]);
 assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '@ + num {0}')), [[1, 8],[0,4]]));
 assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '{0} @ + num')), [[1, 8],[0,4]]));
-// don't do this one! but it works... >:]
+// don't do this one! but it works...
 assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '@ + {0}num')), [[1, 8],[0,4]]));
 
-		
+
 console.log("All tests passed!");
