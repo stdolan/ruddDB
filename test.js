@@ -33,6 +33,9 @@ function test_plan(plan, expected) {
 /* Check that the database exists */
 assert(db._is_loaded(), "Database failed to load!");
 
+/* Silence the db for the sake of reading the results */
+db.silence();
+
 /* Test typing */
 console.log("Testing types");
 var sch = new Schema(['Foo', 'Bar'], [types.INTEGER, types.STRING]);

@@ -6,12 +6,17 @@ var util = require("./util");
 var fs = require("fs");
 
 var tables = {};
+var quiet = 0;
 
 
 /* Creates a table. Equivalent to SQL: CREATE tbl_name (schema)
    schema is specified in SQL way, aka "a INTEGER, b STRING", etc. */
 exports.create = function (tbl_name, schema) {
     tables[tbl_name] = new Table(tbl_name, schema);
+
+    if (!quiet) {
+        console.log("Created table " + tbl_name);
+    }
 }
 
 /* Inserts rows into a table.
@@ -25,7 +30,11 @@ exports.insert = function (tbl_name, tups) {
     for (var i = 0; i < tups.length; i++) {
         tables[tbl_name].insert_tuple(tups[i]);
     }
-    console.log("Inserted " + tups.length + " rows!");
+
+    /* If we're not being quiet, tell the user what happened */
+    if (!quiet) {
+        console.log("Inserted " + tups.length + " rows!");
+    }
 }
 
 /* Deletes tuples from a table that satisfy the given predicate
@@ -43,7 +52,19 @@ exports.delete = function (tbl_name, pred) {
         pred = util.transform_pred(pred, tbl.schema);
     }
 
+    /* Only get the number of rows if we need it to log, since it can be an
+       expensive operation on very large tables */
+    if (!quiet) {
+        var pre_len = tables[tbl_name].num_tuples();
+    }
+
     tables[tbl_name].delete_tuples(pred);
+
+    /* If we're not being quiet, tell the user what happened */
+    if (!quiet) {
+        var post_len = tables[tbl_name].num_tuples();
+        console.log("Deleted " + (pre_len - post_len) + " rows!");
+    }
 }
 
 /* Updates tuples in a table according to the given function, in all rows
@@ -62,8 +83,13 @@ exports.update = function (tbl_name, mut, pred) {
     }
 
     mut = util.transform_mut(mut, tbl.schema);
+    var num_up = tbl.update_tuples(mut, pred);
 
-    tbl.update_tuples(mut, pred);
+    /* If we're not being quiet, tell the user what happened */
+    if (!quiet) {
+        console.log("Updated " + num_up + " rows!");
+    }
+    
 }
 
 /* Helper function. If passed a table name, returns a table node, and if passed
@@ -81,10 +107,17 @@ function resolve_table(arg) {
 /* Given a tree of nodes, returns the resulting tables. */
 exports.eval = function (node) {
     var ret = [];
+    var num_ret = 0
     var tup = node.next_tuple();
     while(tup !== null) {
         ret.push(tup);
         tup = node.next_tuple();
+        num_ret++;
+    }
+
+    /* If we're not being quiet, tell the user what happened */
+    if (!quiet) {
+        console.log("Selected " + num_ret + " rows!");
     }
 
     return ret;
@@ -160,6 +193,14 @@ exports.load = function(filename) {
         this.create(table.name, new Schema(table.schema[0], table.schema[1]));
         this.insert(table.name, table.tuples);
     }
+}
+
+exports.silence = function() {
+    quiet = 1;
+}
+
+exports.unsilence = function() {
+    quiet = 0;
 }
 
 // Debug Functions

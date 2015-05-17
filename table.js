@@ -48,16 +48,21 @@ module.exports = function Table (tbl_name, schema) {
         this.tuples = this.tuples.filter(function (t) { return !pred(t); });
     }
 
+    /* Updates tuples according to a mut(ation) and pred(icate) function.
+       returns the number of tuples updated for logging */
     this.update_tuples = function(mut, pred) {
         /* Transform the given functions, then just update each record
            one by one. */
 
         var tuple;
+        var num_up = 0;
         for (var i = 0; i < this.tuples.length; i++) {
             tuple = this.tuples[i];
             if (pred(tuple))
                 mut(tuple);
+                num_up++;
         }
+        return num_up;
     }
 
     // Returns schema, tbl_name, and tuples
@@ -65,5 +70,10 @@ module.exports = function Table (tbl_name, schema) {
         return {name   : this.tbl_name,
                 schema : [this.schema.names, this.schema.types],
                 tuples : this.tuples};
+    }
+
+    /* A helper for logging tuple deletion */
+    this.num_tuples = function() {
+        return this.tuples.length;
     }
 }
