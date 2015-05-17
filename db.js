@@ -1,5 +1,6 @@
 // db.js - The main database object in ruddDB
 var Table = require("./table");
+var Schema = require("./schema");
 var nodes = require("./nodes");
 var util = require("./util");
 var fs = require("fs");
@@ -14,7 +15,7 @@ exports.create = function (tbl_name, schema) {
 }
 
 /* Inserts rows into a table.
-   Equivalent to SQL: INSERT INTO tbl_name VALUES tup */
+   Equivalent to SQL: INSERT INTO tbl_name VALUES tups */
 exports.insert = function (tbl_name, tups) {
 
     var tbl = tables[tbl_name];
@@ -97,7 +98,7 @@ exports.select = function (child, pred) {
     if (pred === undefined) {
         pred = function () {return true;};
     } else {
-        pred = util.transform_pred(pred, schema);
+        pred = util.transform_pred(pred, resolve_table(child).get_schema());
     }
 
     return new nodes.SelectNode(resolve_table(child), pred);
@@ -135,16 +136,30 @@ exports.fold = function(child, group, fold) {
 }
 
 // Writes the entirety of the tables to the file, sans Table class functions.
-exports.dump = function() {
-    var filename = "db_" + Date.now() + ".dat";
-    var data = [];
+exports.dump = function(filename) {
+    filename = filename + ".dat";
+    var data = {};
+    data.tables = []
     for (table in tables)
         // See _get_data() for more on how the data is structured
-        data.push(tables[table]._get_data());
-    fs.writeFile(filename, data, function(err) {
+        data.tables.push(tables[table].get_data());
+    fs.writeFile(filename, JSON.stringify(data), function(err) {
         if (err) throw err;
-        return "Database written to file " + filename + ".\n";
+        console.log("Database written to file " + filename);
     });
+}
+
+exports.load = function(filename) {
+    filename = filename + ".dat";
+    var data_str = fs.readFileSync(filename);
+    var data = JSON.parse(data_str);
+    
+    /* Reconstruct each table */
+    for (var i = 0; i < data.tables.length; i++) {
+        table = data.tables[i];
+        this.create(table.name, new Schema(table.schema[0], table.schema[1]));
+        this.insert(table.name, table.tuples);
+    }
 }
 
 // Debug Functions

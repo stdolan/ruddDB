@@ -61,10 +61,9 @@ module.exports = function Table (tbl_name, schema) {
     }
 
     // Returns schema, tbl_name, and tuples
-    this._get_data = function() {
-        return ["table name:", this.tbl_name,
-            "schema names:", this.schema.names,
-            "schema types:", this.schema.types,
-            "tuples:", this.tuples];
+    this.get_data = function() {
+        return {name   : this.tbl_name,
+                schema : [this.schema.names, this.schema.types],
+                tuples : this.tuples};
     }
 }
