@@ -13,6 +13,22 @@ function assert(condition, message) {
     }
 }
 
+// TODO test unordered results somehow?
+function test_plan(plan, expected) {
+	var actual = [];
+	var tup = plan.next_tuple();
+	while(tup !== null) {
+		actual.push(tup);
+		tup = plan.next_tuple();
+	}
+	
+	if(!util.array_deep_eq(actual, expected)) {
+		console.log("Results differ from expected!");
+		console.log(actual);
+		console.log(expected);
+		assert(false);
+	}
+}
 
 /* Check that the database exists */
 assert(db._is_loaded(), "Database failed to load!");
@@ -20,20 +36,17 @@ assert(db._is_loaded(), "Database failed to load!");
 /* Test typing */
 console.log("Testing types");
 var sch = new Schema(['Foo', 'Bar'], [types.INTEGER, types.STRING]);
-var tup1 = [0, 'w'];
-var tup2 = [0];
-var tup3 = [0, 'w', 4];
-var tup4 = ['w', 0];
+assert( sch.matches_tuple([0, 'w']));
+assert(!sch.matches_tuple([0]));
+assert(!sch.matches_tuple([0, 'w', 4]));
+assert(!sch.matches_tuple(['w', 0]));
 
-assert( sch.matches_tuple(tup1));
-assert(!sch.matches_tuple(tup2));
-assert(!sch.matches_tuple(tup3));
-assert(!sch.matches_tuple(tup4));
+// TODO test the transform functions
 
-/* Test pipeline */
-console.log("Testing pipeline");
+/* Testing nodes */
 var table_a = new Table('Animals', new Schema(['name'], [types.STRING]));
 var table_b = new Table('Numbers', new Schema(['len'], [types.INTEGER]));
+var table_c = new Table('Other', new Schema(['len'], [types.INTEGER]));
 
 table_a.insert_tuple(['dog']);
 table_a.insert_tuple(['cat']);
@@ -41,94 +54,67 @@ table_a.insert_tuple(['giraffe']);
 
 table_b.insert_tuple([3]);
 table_b.insert_tuple([7]);
-table_b.insert_tuple([5]);
+table_b.insert_tuple([2]);
 
-function test_func(tup) {
-	return tup[0].length === tup[1];
-}
+table_c.insert_tuple([4]);
+table_c.insert_tuple([7]);
 
-var plan_str = parser.parse("SELECT(JOIN(table_a, table_b), `name.length === len`)");
-eval("var plan = " + plan_str);
-assert(util.array_eq(plan.next_tuple(), ['dog', 3]));
-assert(util.array_eq(plan.next_tuple(), ['cat', 3]));
-assert(util.array_eq(plan.next_tuple(), ['giraffe', 7]));
-assert(plan.next_tuple() === null);
+console.log("Testing select nodes");
+var plan = new nodes.SelectNode(new nodes.TableNode(table_a),
+    function (tup) { return tup[0].length === 3; });
+test_plan(plan, [['dog'], ['cat']]);
 
-var sch = new Schema(['foo'], [types.INTEGER]);
-var table_l = new Table('Left', sch);
-var table_r = new Table('Right', sch);
+console.log("Testing join nodes");
+plan = new nodes.JoinNode(new nodes.TableNode(table_a),
+                          new nodes.TableNode(table_b));
+test_plan(plan, [['dog', 3], ['dog', 7], ['dog', 2],
+                 ['cat', 3], ['cat', 7], ['cat', 2],
+				 ['giraffe', 3], ['giraffe', 7], ['giraffe', 2]]);
+				 
+console.log("Testing union nodes");
+plan = new nodes.UnionNode(new nodes.TableNode(table_b),
+                           new nodes.TableNode(table_c));
+test_plan(plan, [[3], [7], [2], [4], [7]]);
 
-for(var i = 0; i < 5; i++) {
-	table_l.insert_tuple([i]);
-	table_r.insert_tuple([i * 10]);
-}
+console.log("Testing project nodes");
+plan = new nodes.ProjectNode(
+    new nodes.TableNode(table_b),
+    new Schema(['squared', 'even?'], [types.INTEGER, types.BOOLEAN]),
+	function (tup) { var x = tup[0]; return [x * x, x % 2 === 0]; });
+test_plan(plan, [[9, false], [49, false], [4, true]]);
 
-plan_str = parser.parse("UNION(table_l, table_r)");
-eval("plan = " + plan_str);
-							   
-for(var i = 0; i < 5; i++)
-	assert(util.array_eq(plan.next_tuple(), [i]));
-for(var i = 0; i < 5; i++)
-	assert(util.array_eq(plan.next_tuple(), [i * 10]));
-assert(plan.next_tuple() === null);
+console.log("Testing folding nodes");
+plan = new nodes.FoldingNode(
+    new nodes.TableNode(table_a),
+	function (tup) { return [tup[0].length]; },
+	function (acc, tup) { if(acc === undefined) { acc = ['']; }
+	                      return [acc[0] + tup[0]]; });
+test_plan(plan, [[3, 'dogcat'], [7, 'giraffe']]);
 
-/* Test folding node */
-console.log("Testing aggregations");
-var s = new Schema (['foo', 'bar'], [types.INTEGER, types.FLOAT])
-var t = new Table('MyTable', s);
-t.insert_tuple([0,1]);
-t.insert_tuple([0,2]);
-t.insert_tuple([0,4]);
-t.insert_tuple([1,3]);
-t.insert_tuple([1,3]);
-t.insert_tuple([2,0]);
-var tn = new nodes.TableNode(t);
-function g (tup) { return [tup[0]]; }
-function a1 (acc, tup) { if(acc === undefined) { return [1]; } return [acc[0] + 1]; }
-function a2 (acc, tup) { if(acc === undefined) { return [tup[1]]; } return [acc[0] + tup[1]]; }
-
-var fn1 = new nodes.FoldingNode(tn, g, a1);
-assert(util.array_deep_eq(fn1.next_tuple(), [0, 3]));
-assert(util.array_deep_eq(fn1.next_tuple(), [1, 2]));
-assert(util.array_deep_eq(fn1.next_tuple(), [2, 1]));
-assert(fn1.next_tuple() === null);
-
-tn.reset();
-var fn2 = new nodes.FoldingNode(tn, g, a2);
-assert(util.array_deep_eq(fn2.next_tuple(), [0, 7]));
-assert(util.array_deep_eq(fn2.next_tuple(), [1, 6]));
-assert(util.array_deep_eq(fn2.next_tuple(), [2, 0]));
-assert(fn2.next_tuple() === null);
+// TODO test queries! db.select is different from SelectNode...
 
 /* Test inserts */
 console.log("Testing inserts");
-var sch2 = new Schema(['Num'], [types.INTEGER]);
-db.create("a", sch2);
-db.insert("a", [3]);
-db.insert("a", [4]);
-db.insert("a", [5]);
-
-/* Test selects */
-console.log("Testing selects");
-assert(util.array_deep_eq(db.eval(db.select("a")), [[3], [4], [5]]))
-assert(util.array_deep_eq(db.eval(db.select("a", "Num > 3")), [[4], [5]]))
-assert(util.array_deep_eq(db.eval(db.select("a", function (Num) {return Num > 3;})),
-                                    [[4], [5]]))				  
+db.create('a', new Schema(['Num'], [types.INTEGER]));
+db.insert('a', [[3], [4], [5]]);
+assert(db.eval(db.select('a')), [[3], [4], [5]]);
+db.insert('a', [[7]]);
+assert(db.eval(db.select('a')), [[3], [4], [5], [7]]);
 
 /* Test updates */
 console.log("Testing updates");
-db.update("a", "Num = 6", "Num > 4");
-assert(util.array_deep_eq(db.eval(db.select("a")), [[3], [4], [6]]))
-db.update("a", function (Num) {Num = 5;}, function (Num) {return Num > 5});
-assert(util.array_deep_eq(db.eval(db.select("a")), [[3], [4], [5]])) 
+db.update("a", "Num = 11", "Num >= 5");
+assert(util.array_deep_eq(db.eval(db.select("a")), [[3], [4], [11], [11]]));
+db.update("a", "Num = Num % 3");
+assert(util.array_deep_eq(db.eval(db.select("a")), [[0], [1], [2], [2]]));
 
 /* Test deletes */
 console.log("Testing deletes");
-db.delete("a", "Num > 4");
-assert(util.array_deep_eq(db.eval(db.select("a")), [[3], [4]]),
+db.delete("a", "Num > 1");
+assert(util.array_deep_eq(db.eval(db.select("a")), [[0], [1]]),
 		"Failed to delete with predicate!")
-db.delete("a", function (Num) {return Num > 3;});
-assert(util.array_deep_eq(db.eval(db.select("a")), [[3]]),
+db.delete("a", "Num == 0");
+assert(util.array_deep_eq(db.eval(db.select("a")), [[1]]),
 		"Failed to delete with predicate!")
 db.delete("a");
 assert(util.array_deep_eq(db.eval(db.select("a")), []),

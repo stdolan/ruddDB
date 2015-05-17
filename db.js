@@ -13,54 +13,57 @@ exports.create = function (tbl_name, schema) {
     tables[tbl_name] = new Table(tbl_name, schema);
 }
 
-/* Inserts a row into a table.
-   Equivalent to SQL: INSERT INTO tbl_name VALUE tup */
+/* Inserts rows into a table.
+   Equivalent to SQL: INSERT INTO tbl_name VALUES tup */
 exports.insert = function (tbl_name, tups) {
-    if (tables[tbl_name] !== undefined) {
-        if (tups.length == 1) {
-            tables[tbl_name].insert_tuple(tups);
-        }
-        else {
-            for (var i = 0; i < tups.length; i++) {
-                tables[tbl_name].insert_tuple(tups[i]);
-            }
-            console.log("Inserted " + tups.length + " rows!");
-        }
+	
+	var tbl = tables[tbl_name];
+	if(tbl === undefined)
+		throw "Table " + tbl_name + " not found!";
+	
+    for (var i = 0; i < tups.length; i++) {
+        tables[tbl_name].insert_tuple(tups[i]);
     }
-    else {
-        throw "Table " + tbl_name + " not found!";
-    }
+    console.log("Inserted " + tups.length + " rows!");
 }
 
 /* Deletes tuples from a table that satisfy the given predicate
    Equivalent to SQL: DELETE FROM tbl_name WHERE pred */
 exports.delete = function (tbl_name, pred) {
 
+    var tbl = tables[tbl_name];
+	if(tbl === undefined)
+		throw "Table " + tbl_name + " not found!";
+
     // If we didn't supply a predicate, delete everything.
     if (pred === undefined) {
         pred = function () {return true;};
-    }
+    } else {
+        pred = util.transform_pred(pred, tbl.schema);
+	}
 
-    if (tables[tbl_name] !== undefined) {
-	    tables[tbl_name].delete_tuples(pred);
-    }
-	else {
-	    throw "Table " + tbl_name + " not found!";
-    }
+    tables[tbl_name].delete_tuples(pred);
 }
 
 /* Updates tuples in a table according to the given function, in all rows
    which satisfy the given predicate.
    Equivalent to SQL: UPDATE tbl_name SET mut WHERE pred */
 exports.update = function (tbl_name, mut, pred) {
-    if (tables[tbl_name] !== undefined) {
-	    tables[tbl_name].update_tuples(mut, pred);
-    }
-	else {
-	    throw "Table " + tbl_name + " not found!";
-    }
-}
+	
+	var tbl = tables[tbl_name];
+	if(tbl === undefined)
+		throw "Table " + tbl_name + " not found!";
+	
+	if (pred === undefined) {
+        pred = function (tup) {return true;};
+    } else {
+        pred = util.transform_pred(pred, tbl.schema);
+	}
+	
+	mut = util.transform_mut(mut, tbl.schema);
 
+	tbl.update_tuples(mut, pred);
+}
 
 /* Helper function. If passed a table name, returns a table node, and if passed
    a node, just returns it. */
@@ -91,9 +94,11 @@ exports.eval = function (node) {
 exports.select = function (child, pred) {
 	
 	// If we didn't supply a predicate, return everything.
-    if (pred === undefined) {
+	if (pred === undefined) {
         pred = function () {return true;};
-    }
+    } else {
+        pred = util.transform_pred(pred, schema);
+	}
 	
 	return new nodes.SelectNode(resolve_table(child), pred); 
 }
@@ -108,7 +113,11 @@ exports.join = function(left_child, right_child, join_type) {
 
 // TODO making the user specify the schema is gross. can we do better?
 exports.project = function(child, schema, project) {
-	return new nodes.ProjectNode(resolve_table(child), schema, project);
+	
+	child = resolve_table(child);
+	project = util.transform_mut(project, child.get_schema());
+	
+	return new nodes.ProjectNode(child, schema, project);
 }
 
 exports.union = function(left_child, right_child) {

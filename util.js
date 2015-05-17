@@ -45,28 +45,48 @@ function zip(arrays) {
     });
 }
 
-function transform_pred(pred, schema) {
-    var pred_str = pred.toString();
+function transform_pred(input, schema) {
+	if(typeof input === "string") {
+		var body = _transform_str(input, schema);
+		eval("pred = function (tup) { return" + body + "}");
+		return pred;
+	} else {
+		return _transform_func(input, schema);
+	}
+}
+
+function transform_mut(input, schema) {
+	if(typeof input === "string") {
+		var body = _transform_str(input, schema);
+        eval("mut = function (tup) { " + body + "; }");
+		return mut;
+	} else {
+		return _transform_func(input, schema);
+	}
+}
+
+function _transform_func(func, schema) {
+    var func_str = func.toString();
 
     /* Find the relevant parts of the function string */
-    var arg_start = pred_str.indexOf("(") + 1;
-    var arg_end = pred_str.indexOf(")");
-    var body_start = pred_str.indexOf("{") + 1;
-    var body_end = pred_str.length - 1;
+    var arg_start = func_str.indexOf("(") + 1;
+    var arg_end = func_str.indexOf(")");
+    var body_start = func_str.indexOf("{") + 1;
+    var body_end = func_str.length - 1;
 
     /* Break the args out of the argument list, and get the corresponding
        indices of the column names in the table */
-    var args = pred_str.substring(arg_start, arg_end).split(",")
+    var args = func_str.substring(arg_start, arg_end).split(",")
     args = args.map(function (x) {return x.trim();});
     if (args[0] == '') {
-        return pred;
+        return func;
     }
     var inds = args.map(function (x)
                            {return schema.get_index_of_col(x).toString();});
 
     /* Break the body of the function out, and take care of the relevant
        replacements, from column names to indexing into the tuple */
-    var body = pred_str.substring(body_start, body_end);
+    var body = func_str.substring(body_start, body_end);
     for (var i = 0; i < args.length; i++) {
         var arg = args[i];
         var rep_string = "tup[" + inds[i] + "]";
@@ -74,50 +94,29 @@ function transform_pred(pred, schema) {
     }
 
     /* Reconstruct the original function and return it. */
-    eval("pred = function (tup) {" + body + "}");
-    return pred;
+    eval("func = function (tup) {" + body + "}");
+    return func;
 }
 
 /* transform takes a schema and a string, interprets the string as a function
-   body, transforms it to a function that can be directly applied to tuples in
-   the table. */
-function transform_pred_str(func_str, schema) {
+   body, and replaces names with indices into the tuple. */
+function _transform_str(str, schema) {
 	
 	// This is so the regex doesn't need to think about the beginning of the string
-	func_str = " " + func_str + " ";
+	str = " " + str + " ";
 	
 	for(var i = 0; i < schema.length; i++)
 	{
 		var name = schema.names[i];
 		var regexp = new RegExp("(\\W)" + name + "(\\W)", "g");
-		func_str = func_str.replace(regexp, "$1tup[" + i + "]$2");
+		str = str.replace(regexp, "$1tup[" + i + "]$2");
 	}
-		
-    /* Reconstruct the original function and return it. */
-    eval("pred = function (tup) { return " + func_str + "; }");
-    return pred;
-}
-
-function transform_mut_str(func_str, schema) {
 	
-	// This is so the regex doesn't need to think about the beginning of the string
-	func_str = " " + func_str + " ";
-	
-	for(var i = 0; i < schema.length; i++)
-	{
-		var name = schema.names[i];
-		var regexp = new RegExp("(\\W)" + name + "(\\W)", "g");
-		func_str = func_str.replace(regexp, "$1tup[" + i + "]$2");
-	}
-		
-    /* Reconstruct the original function and return it. */
-    eval("pred = function (tup) { " + func_str + "; }");
-    return pred;
+	return str;
 }
 
 module.exports.array_eq = array_eq;
 module.exports.array_deep_eq = array_deep_eq;
 module.exports.zip = zip;
-module.exports.transform_pred_str = transform_pred_str;
-module.exports.transform_mut_str = transform_mut_str;
 module.exports.transform_pred = transform_pred;
+module.exports.transform_mut = transform_mut;

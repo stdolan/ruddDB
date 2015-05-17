@@ -38,13 +38,6 @@ function TableNode(t) {
 
 function SelectNode(child, pred) {
 
-    if (typeof pred === "string") {
-        pred = util.transform_pred_str(pred, child.get_schema());
-    }
-    else {
-        pred = util.transform_pred(pred, child.get_schema());
-    }
-
 	// eta reduction, yo
 	this.reset = child.reset;
 	this.get_schema = child.get_schema;
@@ -93,9 +86,7 @@ function JoinNode(left, right) {
 }
 
 // project is a function that transforms tuples
-function ProjectNode(child, schema, project_str) {
-
-    var project = util.transform_pred(project_str, schema);
+function ProjectNode(child, schema, project) {
 
 	this.reset = child.reset;
 

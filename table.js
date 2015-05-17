@@ -1,8 +1,7 @@
 // table.js - the table class for ruddDB
 var Schema = require("./schema");
 // Solely required for make_schema
-var Types = require("./types");
-var util = require("./util");
+var types = require("./types");
 
 // We should probably move this to schema.js, ie have the schema constructor take a variable
 // (in terms of type) argument. Or maybe util?
@@ -18,7 +17,7 @@ function make_schema(s) {
     // Make the arrays to pass to schema
     .map(function (t) {
         names.push(t[0]);
-        types.push(Types.map_type(t[1]));
+        types.push(types.map_type(t[1]));
     });
 
     return new Schema(names, types);
@@ -27,6 +26,7 @@ function make_schema(s) {
 module.exports = function Table (tbl_name, schema) {
     if (typeof schema === "string")
         schema = make_schema(schema);
+	
     this.schema = schema;
     this.tbl_name = tbl_name;
     this.tuples = [];
@@ -45,44 +45,18 @@ module.exports = function Table (tbl_name, schema) {
 	/* delete_pred deletes tuples from the table which satisfy the predicate.
 	   If the predicate is empty, all tuples are deleted. */
 	this.delete_tuples = function (pred) {
-
-        if (typeof pred === "string") {
-            pred = util.transform_pred_str(pred, schema);
-        }
-        else {
-            pred = util.transform_pred(pred, schema);
-        }
-
-
 		this.tuples = this.tuples.filter(function (t) { return !pred(t); });
 	}
 
     this.update_tuples = function(mut, pred) {
         /* Transform the given functions, then just update each record
            one by one. */
-        
-        if (typeof pred === "string") {
-            pred = util.transform_pred_str(pred, schema);
-        }
-        else {
-            pred = util.transform_pred(pred, schema);
-        }
-
-
-        if (typeof mut === "string") {
-            mut = util.transform_mut_str(mut, schema);
-        }
-        else {
-            mut = util.transform_pred(mut, schema);
-        }
 
         var tuple;
         for (var i = 0; i < this.tuples.length; i++) {
             tuple = this.tuples[i];
-            if (pred(tuple)) {
+            if (pred(tuple))
                 mut(tuple);
-                this.tuples[i] = tuple;
-            }
         }
     }
 
