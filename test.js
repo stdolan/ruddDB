@@ -97,6 +97,7 @@ test_plan(plan, [[3, 'dogcat'], [7, 'giraffe']]);
 // TODO test queries! db.select is different from SelectNode...
 
 /* Test inserts */
+// TODO: test inserts with keys!
 console.log("Testing inserts");
 db.create('a', new Schema(['Num'], [types.INTEGER]));
 db.insert('a', [[3], [4], [5]]);
@@ -105,6 +106,7 @@ db.insert('a', [[7]]);
 assert(db.eval(db.select('a')), [[3], [4], [5], [7]]);
 
 /* Test updates */
+// TODO: test updates with keys!
 console.log("Testing updates");
 db.update("a", "Num = 11", "Num >= 5");
 assert(util.array_deep_eq(db.eval(db.select("a")), [[3], [4], [11], [11]]));
@@ -112,6 +114,7 @@ db.update("a", "Num = Num % 3");
 assert(util.array_deep_eq(db.eval(db.select("a")), [[0], [1], [2], [2]]));
 
 /* Test deletes */
+// TODO: Test deletes with keys!
 console.log("Testing deletes");
 db.delete("a", "Num > 1");
 assert(util.array_deep_eq(db.eval(db.select("a")), [[0], [1]]),

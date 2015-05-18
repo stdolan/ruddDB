@@ -38,7 +38,7 @@ function is_type (val, type) {
 function is_integer(val) {
     if(typeof val === 'number') {
         // Jank as fuck, but it seems to work
-        return (val | 0 === val);
+        return ((val | 0) === val);
     }
     return false;
 }

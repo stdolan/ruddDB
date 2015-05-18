@@ -2,6 +2,9 @@
 var Schema = require("./schema");
 // Solely required for make_schema
 var types = require("./types");
+var util = require("./util");
+
+
 
 // We should probably move this to schema.js, ie have the schema constructor take a variable
 // (in terms of type) argument. Or maybe util?
@@ -23,12 +26,18 @@ function make_schema(s) {
     return new Schema(names, types);
 }
 
-module.exports = function Table (tbl_name, schema) {
+module.exports = function Table (tbl_name, schema, keys) {
     if (typeof schema === "string")
         schema = make_schema(schema);
 
+    if (keys == undefined) {
+        keys = []
+    }
+
     this.schema = schema;
     this.tbl_name = tbl_name;
+    this.keys = keys;
+    this.keysets_present = {}
     this.tuples = [];
 
     /* insert_tuple checks if tup matches the table's schema, then pushes
@@ -39,17 +48,34 @@ module.exports = function Table (tbl_name, schema) {
             console.log(tup);
             throw "Tuple doesn't match schema!";
         }
+
+        /* If we have a non-trivial key, check what we're inserting vs the
+           map of inserted key values */
+        if (this.keys.length != 0) {
+            key_project = util.create_project_function(this.keys, this.schema);
+            tup_key = key_project(tup);
+            if (this.keysets_present[tup_key]) {
+                throw "Key error! A tuple with this key is already in the table."
+            }
+            else {
+                this.keysets_present[tup_key] = true;
+            }
+        }
+        
+
         this.tuples.push(tup);
     }
 
     /* delete_pred deletes tuples from the table which satisfy the predicate.
        If the predicate is empty, all tuples are deleted. */
+    // TODO: Take care of keys when deleting
     this.delete_tuples = function (pred) {
         this.tuples = this.tuples.filter(function (t) { return !pred(t); });
     }
 
     /* Updates tuples according to a mut(ation) and pred(icate) function.
        returns the number of tuples updated for logging */
+    // TODO: Take care of keys when updating
     this.update_tuples = function(mut, pred) {
         /* Transform the given functions, then just update each record
            one by one. */

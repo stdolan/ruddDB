@@ -10,9 +10,12 @@ var quiet = 0;
 
 
 /* Creates a table. Equivalent to SQL: CREATE tbl_name (schema)
-   schema is specified in SQL way, aka "a INTEGER, b STRING", etc. */
-exports.create = function (tbl_name, schema) {
-    tables[tbl_name] = new Table(tbl_name, schema);
+   schema can be specified in SQL way, aka "a INTEGER, b STRING", etc. 
+   or simply by creating a Schema object using javascript arrays of column
+   names and types. The keys argument is optional, and the set of columns
+   in the given tuple is used as a primary/candidate key for the table. */
+exports.create = function (tbl_name, schema, keys) {
+    tables[tbl_name] = new Table(tbl_name, schema, keys);
 
     if (!quiet) {
         console.log("Created table " + tbl_name);
@@ -174,7 +177,7 @@ exports.dump = function(filename) {
     var data = {};
     data.tables = []
     for (table in tables)
-        // See _get_data() for more on how the data is structured
+        // See get_data() for more on how the data is structured
         data.tables.push(tables[table].get_data());
     fs.writeFile(filename, JSON.stringify(data), function(err) {
         if (err) throw err;

@@ -156,9 +156,27 @@ function _transform_str(str, schema) {
     return str;
 }
 
+/* Creates a function that projects a tuple based on an array of column names */
+// TODO Can we use this to simplify the project node?
+function create_project_function(cols, schema) {
+    body = "function (tup) {return [";
+    
+    for (var i = 0; i < cols.length; i++) {
+        var col = cols[i];
+        body += "tup[" + schema.get_index_of_col(col) + "], ";
+    }
+
+    body = body.substring(0, body.length - 2);
+    body += "];}"
+
+    eval("var pred = " + body);
+    return pred;
+}
+
 module.exports.array_eq = array_eq;
 module.exports.array_deep_eq = array_deep_eq;
 module.exports.zip = zip;
 module.exports.transform_pred = transform_pred;
 module.exports.transform_mut = transform_mut;
 module.exports.transform_fold = transform_fold;
+module.exports.create_project_function =  create_project_function;
