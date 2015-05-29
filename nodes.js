@@ -13,6 +13,23 @@ var util = require('./util');
  *     exhausted, it must not crash.
  * Additionally, they must be prepared upon creation, without an init method.
  */
+function RenameNode(child, name) {
+    this.reset = function() {
+        child.reset();
+    }
+    
+    this.get_schema = function () {
+        return child.get_schema();
+    }
+    
+    this.next_tuple = function () {
+        return child.next_tuple();
+    }
+    
+    this.get_name = function () {
+        return name;
+    }
+}
 
 function TableNode(t) {
     var table = t;
@@ -34,9 +51,13 @@ function TableNode(t) {
             return null;
         }
     }
+    
+    this.get_name = function () {
+        return table.tbl_name;
+    }
 }
 
-function SelectNode(child, pred) {
+function SelectNode(child, pred, name) {
 
     // eta reduction, yo
     this.reset = child.reset;
@@ -51,20 +72,35 @@ function SelectNode(child, pred) {
             }
         }
     }
+    
+    this.get_name = function () {
+        return name;
+    }
 }
 
-function JoinNode(left, right) {
+function JoinNode(left, right, name) {
 
+    var left_sc = left.get_schema().copy();
+    var right_sc = right.get_schema().copy();
+    var l_name = left.get_name();
+    var r_name = right.get_name();
+    var intersection = left_sc.intersect(right_sc);
+    left_sc.rename_cols(intersection, l_name);
+    right_sc.rename_cols(intersection, r_name);
     var currLeft = left.next_tuple();
-
+    var schema = left_sc.concat(right_sc);
+    
     this.reset = function () {
         left.reset();
         right.reset();
-        currLeft = left.next_tuple();
+        currleft = left.next_tuple();
     }
 
     this.get_schema = function () {
-        return left.get_schema().concat(right.get_schema());
+        return schema;
+        
+        /*
+        return left.get_schema().concat(right.get_schema());*/
     }
 
     this.next_tuple = function () {
@@ -80,13 +116,16 @@ function JoinNode(left, right) {
             if(currLeft === null)
                 return null;
         }
-
         return currLeft.concat(nextRight);
+    }
+    
+    this.get_name = function () {
+        return name;
     }
 }
 
 // project is a function that transforms tuples
-function ProjectNode(child, schema, project) {
+function ProjectNode(child, schema, project, name) {
 
     this.reset = child.reset;
 
@@ -104,9 +143,13 @@ function ProjectNode(child, schema, project) {
         }
         return new_tup;
     }
+    
+    this.get_name = function () {
+        return name;
+    }
 }
 
-function UnionNode(left, right) {
+function UnionNode(left, right, name) {
 
     this.reset = function() {
         left.reset();
@@ -121,7 +164,11 @@ function UnionNode(left, right) {
             return tup;
         return right.next_tuple();
     }
-
+    
+    this.get_name = function () {
+        return name;
+    }
+    
     if(!left.get_schema().equals(right.get_schema()))
         throw "Schema do not match!";
 }
@@ -135,7 +182,7 @@ function UnionNode(left, right) {
 // fold_func takes an accumulated value (which may be undefined), and a tuple,
 // and folds the tuple into the accumulator. You should be thinking "things you
 // can pass foldl (for Haskell) or reduce (for Python).
-function FoldingNode(child, group_func, fold_func) {
+function FoldingNode(child, group_func, fold_func, name) {
 
     var tuples_prepared = false;
     var index = 0;
@@ -188,8 +235,13 @@ function FoldingNode(child, group_func, fold_func) {
         // TODO problem: gluing the tuples together will be tricky. what about
         // the other vars that aren't grouped by or aggregates?
     }
+    
+    this.get_name = function () {
+        return name;
+    }
 }
 
+module.exports.RenameNode = RenameNode;
 module.exports.TableNode = TableNode;
 module.exports.SelectNode = SelectNode;
 module.exports.JoinNode = JoinNode;

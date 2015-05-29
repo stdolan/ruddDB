@@ -50,6 +50,10 @@ assert(!sch.matches_tuple(['w', 0]));
 var table_a = new Table('Animals', new Schema(['name'], [types.STRING]));
 var table_b = new Table('Numbers', new Schema(['len'], [types.INTEGER]));
 var table_c = new Table('Other', new Schema(['len'], [types.INTEGER]));
+var table_d = new Table('Students', new Schema(['name', 'major'],
+                                               [types.STRING, types.STRING]));
+var table_e = new Table('Rooms', new Schema(['name', 'room'],
+                                            [types.STRING, types.INTEGER]));
 
 table_a.insert_tuple(['dog']);
 table_a.insert_tuple(['cat']);
@@ -62,17 +66,37 @@ table_b.insert_tuple([2]);
 table_c.insert_tuple([4]);
 table_c.insert_tuple([7]);
 
+table_d.insert_tuple(['Elliot', 'Math']);
+table_d.insert_tuple(['Patrick', 'ChemE']);
+table_d.insert_tuple(['Galen', 'BioE']);
+
+table_e.insert_tuple(['Elliot', 229]);
+table_e.insert_tuple(['Patrick', 212]);
+table_e.insert_tuple(['Galen', 229]);
+
 console.log("Testing select nodes");
 var plan = new nodes.SelectNode(new nodes.TableNode(table_a),
     function (tup) { return tup[0].length === 3; });
 test_plan(plan, [['dog'], ['cat']]);
 
 console.log("Testing join nodes");
+plan = new nodes.JoinNode(new nodes.TableNode(table_b),
+                          new nodes.RenameNode(new nodes.TableNode(table_b), "copy"));
+//console.log(plan.get_schema());
+test_plan(plan, [[3, 3], [3, 7], [3, 2],
+                 [7, 3], [7, 7], [7, 2],
+				 [2, 3], [2, 7], [2, 2]]);
+                 
 plan = new nodes.JoinNode(new nodes.TableNode(table_a),
                           new nodes.TableNode(table_b));
 test_plan(plan, [['dog', 3], ['dog', 7], ['dog', 2],
                  ['cat', 3], ['cat', 7], ['cat', 2],
                  ['giraffe', 3], ['giraffe', 7], ['giraffe', 2]]);
+
+plan = new nodes.JoinNode(new nodes.TableNode(table_d),
+                          new nodes.TableNode(table_e));
+assert(util.array_deep_eq(plan.get_schema().names, 
+                         ['Students.name', 'major', 'Rooms.name', 'room']));
 
 console.log("Testing union nodes");
 plan = new nodes.UnionNode(new nodes.TableNode(table_b),
