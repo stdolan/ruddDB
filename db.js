@@ -3,10 +3,11 @@ var Table = require("./table");
 var Schema = require("./schema");
 var nodes = require("./nodes");
 var util = require("./util");
+var Transaction = require("./transaction.js");
 var fs = require("fs");
 
 var tables = {};
-var quiet = 0;
+quiet = 0;
 
 
 /* Creates a table. Equivalent to SQL: CREATE tbl_name (schema)
@@ -169,6 +170,24 @@ exports.fold = function(child, group, fold) {
     fold = util.transform_fold(fold, child.get_schema());
 
     return new nodes.FoldingNode(child, group, fold);
+}
+
+/* Starts a transaction involving table name, and returns a transaction context
+   to run DDL against.
+   Essentially equivalent to SQL: BEGIN, but only one table at a time can be
+   edited. The type argument effects the way the transaction is implemented.
+   type "copy" duplicates the table for editing, so that others can
+   access it while the transaction is onging, while type "lock" locks
+   edited rows, returning an error when users try to read or edit those rows */
+exports.begin_transaction = function(tbl_name, type) {
+
+    var tbl = tables[tbl_name];
+    if(tbl === undefined) {
+        throw "Table " + tbl_name + " not found!";
+    }
+
+    var txn = new Transaction(tbl, type);
+    return txn;
 }
 
 // Writes the entirety of the tables to the file, sans Table class functions.

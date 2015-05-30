@@ -131,7 +131,7 @@ function _transform_func(func, schema) {
     for (var i = 0; i < args.length; i++) {
         var arg = args[i];
         var rep_string = "tup[" + inds[i] + "]";
-        body = body.replace(arg, rep_string);
+        body = body.replace(new RegExp(arg, 'g'), rep_string);
     }
 
     /* Reconstruct the original function and return it. */
@@ -171,6 +171,33 @@ function create_project_function(cols, schema) {
 
     eval("var pred = " + body);
     return pred;
+}
+
+/* Creates a complete copy of a javascript object */
+function deep_clone(source, dest) {
+    if (source.length != undefined) {
+        /* If length exists, it's an array. Copy over recursively. */
+        dest = []
+        for (var i = 0; i < source.length; i++) {
+            if (typeof source[i] == "object") {
+                deep_clone(source[i], dest[i]);
+            }
+            else {
+                dest[i] = source[i];
+            }
+        }
+    }
+    else {
+        /* It's an object. Copy all keys recursively. */
+        source.keys().forEach(
+            function (name) {
+                if (typeof source[name] == "object") {
+                    deep_clone(source[name], dest[name]);
+                }
+                else {
+                    dest[name] = source[name];
+                }})
+    }
 }
 
 module.exports.array_eq = array_eq;

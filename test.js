@@ -161,5 +161,18 @@ assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '{0} @ + num')), [[1
 // don't do this one! but it works...
 assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '@ + {0}num')), [[1, 8],[0,4]]));
 
+/* Test transactions */
+console.log("Testing transactions");
+db.create('a', new Schema(['num'], [types.INTEGER]));
+db.insert('a', [[3], [4], [5]]);
+test_txn = db.begin_transaction('a', 'copy');
+test_txn.delete('a', function(num) {return num == 5})
+test_txn.insert('a', [[6]]);
+test_txn.update('a', function(num) {num = num + 1}, function (num) {return num == 3});
+assert(util.array_deep_eq(db.eval(test_txn.select('a')), [[4], [4], [6]]), "Failed to update in txn")
+assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5]]), "Failed to save original table")
+test_txn.commit();
+assert(util.array_deep_eq(db.eval(db.select('a')), [[4], [4], [6]]), "Failed to commit")
+
 
 console.log("All tests passed!");
