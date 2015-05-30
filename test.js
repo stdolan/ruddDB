@@ -148,6 +148,46 @@ db.delete("a");
 assert(util.array_deep_eq(db.eval(db.select("a")), []),
         "Failed to delete without predicate!")
 
+		
+/* Test transactions */
+console.log("Testing transactions");
+db.create('a', new Schema(['num'], [types.INTEGER]));
+db.insert('a', [[3], [4], [5]]);
+
+// There's no client to set the txn_id for us, so we do it by hand here
+var id_1 = db.start_transaction();
+txn_id = id_1;
+db.delete('a', function(num) {return num == 5});
+assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4]]), "Failed to update in txn 1");
+
+txn_id = 0;
+assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5]]), "Failed to preserve original state");
+
+var id_2 = db.start_transaction();
+txn_id = id_2;
+db.insert('a', [[6]]);
+assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5], [6]]), "Failed to update in txn 2");
+
+txn_id = id_1;
+db.update('a', function(num) {num = num - 1}, function (num) {return num == 3});
+assert(util.array_deep_eq(db.eval(db.select('a')), [[2], [4]]), "Failed to switch back to txn 1");
+
+txn_id = id_2;
+db.commit();
+txn_id = 0;
+assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5], [6]]), "Failed to commit txn 2");
+
+txn_id = id_1;
+var flag = false;
+try {
+	db.commit();
+} catch(err) {
+	flag = true;
+}
+assert(flag, "Commiting txn 1 should have failed, but didn't");
+
+// Set back to no transaction
+txn_id = 0;
 
 // TODO wrap this into the query tests. right now, i'm just putting it here
 // to demonstrate proper fold usage
@@ -159,18 +199,7 @@ assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '{0} @ + num')), [[1
 // don't do this one! but it works...
 assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '@ + {0}num')), [[1, 8],[0,4]]));
 
-/* Test transactions */
-console.log("Testing transactions");
-db.create('a', new Schema(['num'], [types.INTEGER]));
-db.insert('a', [[3], [4], [5]]);
-test_txn = db.begin_transaction('a', 'copy');
-test_txn.delete('a', function(num) {return num == 5})
-test_txn.insert('a', [[6]]);
-test_txn.update('a', function(num) {num = num + 1}, function (num) {return num == 3});
-assert(util.array_deep_eq(db.eval(test_txn.select('a')), [[4], [4], [6]]), "Failed to update in txn")
-assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5]]), "Failed to save original table")
-test_txn.commit();
-assert(util.array_deep_eq(db.eval(db.select('a')), [[4], [4], [6]]), "Failed to commit")
+
 
 
 console.log("All tests passed!");

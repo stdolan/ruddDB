@@ -3,12 +3,15 @@ var Table = require("./table");
 var Schema = require("./schema");
 var nodes = require("./nodes");
 var util = require("./util");
-var Transaction = require("./transaction.js");
 var fs = require("fs");
+var transaction = require("./transaction");
 
 var tables = {};
 quiet = 0;
 
+// The client sends the server an id, which stores it here
+// TODO actually do that
+txn_id = 0;
 
 /* Creates a table. Equivalent to SQL: CREATE tbl_name (schema)
    schema can be specified in SQL way, aka "a INTEGER, b STRING", etc. 
@@ -18,6 +21,8 @@ quiet = 0;
 exports.create = function (tbl_name, schema, keys) {
     tables[tbl_name] = new Table(tbl_name, schema, keys);
 
+	// TODO how do we handle creating tables within transactions?
+	
     if (!quiet) {
         console.log("Created table " + tbl_name);
     }
@@ -31,8 +36,12 @@ exports.insert = function (tbl_name, tups) {
     if(tbl === undefined)
         throw "Table " + tbl_name + " not found!";
 
+	// If we're engaged in a transaction, use the copied table
+	if(txn_id !== 0)
+		tbl = transaction.get_clone(tbl, txn_id);
+	
     for (var i = 0; i < tups.length; i++) {
-        tables[tbl_name].insert_tuple(tups[i]);
+        tbl.insert_tuple(tups[i]);
     }
 
     /* If we're not being quiet, tell the user what happened */
@@ -49,6 +58,10 @@ exports.delete = function (tbl_name, pred) {
     if(tbl === undefined)
         throw "Table " + tbl_name + " not found!";
 
+	// If we're engaged in a transaction, use the copied table
+	if(txn_id !== 0)
+		tbl = transaction.get_clone(tbl, txn_id);
+	
     // If we didn't supply a predicate, delete everything.
     if (pred === undefined) {
         pred = function () {return true;};
@@ -59,14 +72,14 @@ exports.delete = function (tbl_name, pred) {
     /* Only get the number of rows if we need it to log, since it can be an
        expensive operation on very large tables */
     if (!quiet) {
-        var pre_len = tables[tbl_name].num_tuples();
+        var pre_len = tbl.num_tuples();
     }
 
-    tables[tbl_name].delete_tuples(pred);
+    tbl.delete_tuples(pred);
 
     /* If we're not being quiet, tell the user what happened */
     if (!quiet) {
-        var post_len = tables[tbl_name].num_tuples();
+        var post_len = tbl.num_tuples();
         console.log("Deleted " + (pre_len - post_len) + " rows!");
     }
 }
@@ -80,6 +93,10 @@ exports.update = function (tbl_name, mut, pred) {
     if(tbl === undefined)
         throw "Table " + tbl_name + " not found!";
 
+	// If we're engaged in a transaction, use the copied table
+	if(txn_id !== 0)
+		tbl = transaction.get_clone(tbl, txn_id);
+	
     if (pred === undefined) {
         pred = function (tup) {return true;};
     } else {
@@ -100,18 +117,22 @@ exports.update = function (tbl_name, mut, pred) {
    a node, just returns it. */
 function resolve_table(arg) {
     var table = tables[arg];
-    if(table !== undefined)
-        return new nodes.TableNode(table);
 
-    // TODO make sure it's a node!
+	// If we couldn't find anything, I hope it's a node...
+    if(table === undefined)
+		return arg;
+	
+	// If we're engaged in a transaction, use the copied table
+	if(txn_id !== 0)
+		table = transaction.get_clone(table, txn_id);
 
-    return arg;
+    return new nodes.TableNode(table);
 }
 
 /* Given a tree of nodes, returns the resulting tables. */
 exports.eval = function (node) {
     var ret = [];
-    var num_ret = 0
+    var num_ret = 0;
     var tup = node.next_tuple();
     while(tup !== null) {
         ret.push(tup);
@@ -177,22 +198,20 @@ exports.fold = function(child, group, fold) {
     return new nodes.FoldingNode(child, group, fold);
 }
 
-/* Starts a transaction involving table name, and returns a transaction context
-   to run DDL against.
-   Essentially equivalent to SQL: BEGIN, but only one table at a time can be
-   edited. The type argument effects the way the transaction is implemented.
-   type "copy" duplicates the table for editing, so that others can
-   access it while the transaction is onging, while type "lock" locks
-   edited rows, returning an error when users try to read or edit those rows */
-exports.begin_transaction = function(tbl_name, type) {
+exports.start_transaction = transaction.start_transaction;
 
-    var tbl = tables[tbl_name];
-    if(tbl === undefined) {
-        throw "Table " + tbl_name + " not found!";
-    }
+exports.rollback = function () {
+    if(txn_id === 0)
+		throw "No active transaction to roll back!"
+	
+	transaction.rollback(txn_id);
+}
 
-    var txn = new Transaction(tbl, type);
-    return txn;
+exports.commit = function () {
+    if(txn_id === 0)
+		throw "No active transaction to roll back!"
+	
+	transaction.commit(tables, txn_id);
 }
 
 // Writes the entirety of the tables to the file, sans Table class functions.
