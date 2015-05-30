@@ -138,4 +138,16 @@ module.exports = function Transaction (table, type) {
                 break;
         }
     }
+
+    this.rollback = function() {
+        switch(type) {
+            case "copy":
+                this.table.tuples = clone(this.orig.tuples);
+                break;
+
+            case "lock":
+                // TODO free all locks?
+                break;
+        }
+    }
 }
