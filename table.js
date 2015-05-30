@@ -84,9 +84,10 @@ module.exports = function Table (tbl_name, schema, keys) {
         var num_up = 0;
         for (var i = 0; i < this.tuples.length; i++) {
             tuple = this.tuples[i];
-            if (pred(tuple))
+            if (pred(tuple)) {
                 mut(tuple);
                 num_up++;
+            }
         }
         return num_up;
     }
