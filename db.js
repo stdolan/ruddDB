@@ -126,6 +126,11 @@ exports.eval = function (node) {
     return ret;
 }
 
+/* Renames a table or derived relation */
+exports.rename = function (child, name) {
+    return new nodes.RenameNode(resolve_table(child), name);
+}
+
 /* Selects rows from a table.
    Equivalent to SQL: SELECT * FROM child WHERE pred */
 exports.select = function (child, pred) {
