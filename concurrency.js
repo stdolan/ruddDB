@@ -23,8 +23,8 @@ exports.FunctionQueue = function () {
     this.fails = 0
     this.want_nodes = {}
 
-    this.enqueue = function (func, args, lock, txn_id) {
-        this.queue.push([func, args, lock, txn_id]);
+    this.enqueue = function (func, args, lock, txn_id, container) {
+        this.queue.push([func, args, lock, txn_id, container]);
         this.fails = 0;
         this.run();
     }
@@ -38,7 +38,10 @@ exports.FunctionQueue = function () {
         if (lock.state == 0) {
             lock.state = 1;
             lock.owner = txn_id
-            proc[0].apply(proc[0], proc[1]);
+            /* If we have a container specified, we should use that to apply
+               the function (important for evaluating table functions under
+               tables. */
+            proc[0].apply(proc[4] || proc[0], proc[1]);
         }
         else {
             var wanted_lock = proc[2];

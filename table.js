@@ -3,6 +3,7 @@ var Schema = require("./schema");
 // Solely required for make_schema
 var types = require("./types");
 var util = require("./util");
+var Tuple = require("./tuple");
 
 
 
@@ -42,7 +43,7 @@ module.exports = function Table (tbl_name, schema, keys) {
 
     /* insert_tuple checks if tup matches the table's schema, then pushes
        the tuple into the table's tuple array if it does. */
-    this.insert_tuple = function (tup) {
+    this.insert_tuple = function (tup, lock) {
         // If the tuple doesn't match the schema, it's an error.
         if (!schema.matches_tuple(tup)) {
             console.log(tup);
@@ -62,7 +63,7 @@ module.exports = function Table (tbl_name, schema, keys) {
             }
         }
         
-
+        tup = new Tuple(tup, lock);
         this.tuples.push(tup);
     }
 
@@ -70,7 +71,7 @@ module.exports = function Table (tbl_name, schema, keys) {
        If the predicate is empty, all tuples are deleted. */
     // TODO: Take care of keys when deleting
     this.delete_tuples = function (pred) {
-        this.tuples = this.tuples.filter(function (t) { return !pred(t); });
+        this.tuples = this.tuples.filter(function (t) { return !pred(t.values); });
     }
 
     /* Updates tuples according to a mut(ation) and pred(icate) function.
@@ -84,8 +85,8 @@ module.exports = function Table (tbl_name, schema, keys) {
         var num_up = 0;
         for (var i = 0; i < this.tuples.length; i++) {
             tuple = this.tuples[i];
-            if (pred(tuple))
-                mut(tuple);
+            if (pred(tuple.values))
+                mut(tuple.values);
                 num_up++;
         }
         return num_up;

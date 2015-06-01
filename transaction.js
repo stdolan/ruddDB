@@ -4,8 +4,9 @@ var clone = require("clone");
 var Table = require("./table");
 var util = require("./util");
 var nodes = require("./nodes");
+var concurrency = require("./concurrency");
 
-module.exports = function Transaction (table, type) {
+module.exports = function Transaction (table, type, id) {
     
     /* Set up the transaction depending on the type */
     switch(type) {
@@ -16,7 +17,9 @@ module.exports = function Transaction (table, type) {
             break;
 
         case "lock":
-            throw "Lock transactions not yet implemented!";
+            this.type = "lock";
+            this.table = table;
+            this.id = id;
             break;
 
         default:
@@ -34,8 +37,9 @@ module.exports = function Transaction (table, type) {
                 this.table.insert_tuple(tups[i]);
             }
             else {
-                /* TODO Lock the rows/table? We have to decide what to do
-                   in these cases */
+                var row_lock = new concurrency.Lock();
+                func_queue.enqueue(this.table.insert_tuple, [tups[i]],
+                                   row_lock, this.id, this.table);
             }
         }
 

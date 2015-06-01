@@ -4,9 +4,11 @@ var Schema = require("./schema");
 var nodes = require("./nodes");
 var util = require("./util");
 var Transaction = require("./transaction");
+var concurrency = require("./concurrency");
 var fs = require("fs");
 
 var tables = {};
+func_queue = new concurrency.FunctionQueue();
 quiet = 0;
 
 
@@ -32,6 +34,8 @@ exports.insert = function (tbl_name, tups) {
         throw "Table " + tbl_name + " not found!";
 
     for (var i = 0; i < tups.length; i++) {
+        /* No need for locks here, since operations in the main session are
+           atomic by definition */
         tables[tbl_name].insert_tuple(tups[i]);
     }
 
