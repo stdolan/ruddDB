@@ -3,7 +3,7 @@ var Table = require("./table");
 var Schema = require("./schema");
 var nodes = require("./nodes");
 var util = require("./util");
-var Transaction = require("./transaction.js");
+var Transaction = require("./transaction");
 var fs = require("fs");
 
 var tables = {};

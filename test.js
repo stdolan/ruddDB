@@ -6,6 +6,7 @@ var nodes = require("./nodes");
 var parser = require("./parser");
 var types = require("./types");
 var util = require("./util");
+var concurrency = require("./concurrency");
 
 function assert(condition, message) {
     if (!condition) {
@@ -174,5 +175,28 @@ assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5]]), "Failed to 
 test_txn.commit();
 assert(util.array_deep_eq(db.eval(db.select('a')), [[4], [4], [6]]), "Failed to commit")
 
+/* Test concurrency primitives */
+console.log("Testing concurrency");
+
+func_queue = new concurrency.FunctionQueue();
+
+val = [0, 0, 0]
+
+write_val = function (num, spot) {
+    val[spot] = num;
+}
+
+lock1 = new concurrency.Lock();
+lock2 = new concurrency.Lock();
+lock3 = new concurrency.Lock();
+
+func_queue.enqueue(write_val, [1, 0], lock1, 0);
+func_queue.enqueue(write_val, [2, 1], lock2, 1);
+func_queue.enqueue(write_val, [3, 2], lock3, 2);
+func_queue.enqueue(write_val, [3, 0], lock1, 2);
+func_queue.enqueue(write_val, [1, 1], lock2, 0);
+func_queue.enqueue(write_val, [2, 2], lock3, 1);
+
+assert(util.array_deep_eq(val, [1, 1, 3]));
 
 console.log("All tests passed!");
