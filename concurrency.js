@@ -5,6 +5,7 @@
 exports.Lock = function () {
     this.state = 0;
     this.owner = undefined;
+    this.old_values = undefined;
 }
 
 /* Want Nodes for use in determining deadlock in the function queue. */
@@ -40,7 +41,7 @@ exports.FunctionQueue = function () {
             lock.owner = txn_id
             /* If we have a container specified, we should use that to apply
                the function (important for evaluating table functions under
-               tables. */
+               tables.) */
             proc[0].apply(proc[4] || proc[0], proc[1]);
         }
         else {

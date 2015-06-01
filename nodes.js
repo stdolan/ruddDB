@@ -67,9 +67,9 @@ function SelectNode(child, pred, name) {
         while(true) {
             var tuple = child.next_tuple();
 
-            if(tuple === null || pred(tuple.values)) {
+            if(tuple === null || pred(tuple.get_values())) {
                 if (tuple) {
-                    return tuple.values;
+                    return tuple.get_values();
                 }
                 else {
                     return null;
@@ -121,7 +121,7 @@ function JoinNode(left, right, name) {
             if(currLeft === null)
                 return null;
         }
-        return currLeft.values.concat(nextRight.values);
+        return currLeft.get_values().concat(nextRight.get_values());
     }
     
     this.get_name = function () {
@@ -142,7 +142,7 @@ function ProjectNode(child, schema, project, name) {
         var tup = child.next_tuple();
         if(tup === null)
             return null;
-        var new_tup = project(tup.values);
+        var new_tup = project(tup.get_values());
         if (!schema.matches_tuple(new_tup)) {
             throw "Tuple doesn't match schema!";
         }
@@ -166,10 +166,10 @@ function UnionNode(left, right, name) {
     this.next_tuple = function() {
         var tup = left.next_tuple();
         if(tup !== null)
-            return tup.values;
+            return tup.get_values();
         var right_next = right.next_tuple()
         if (right_next) {
-            return right_next.values;
+            return right_next.get_values();
         }
         else {
             return null;
@@ -205,7 +205,7 @@ function FoldingNode(child, group_func, fold_func, name) {
     function prepare_tuples() {
         var tup = child.next_tuple();
         while(tup != null) {
-            var group_tup = group_func(tup.values);
+            var group_tup = group_func(tup.get_values());
             var group_index = undefined;
             for(var i = 0; i < grouping_vars.length; i++)
                 if(util.array_deep_eq(grouping_vars[i], group_tup))
@@ -217,7 +217,7 @@ function FoldingNode(child, group_func, fold_func, name) {
                 aggregate_vars.push(undefined);
             }
 
-            aggregate_vars[group_index] = fold_func(aggregate_vars[group_index], tup.values);
+            aggregate_vars[group_index] = fold_func(aggregate_vars[group_index], tup.get_values());
             tup = child.next_tuple();
         }
 

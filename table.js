@@ -4,6 +4,7 @@ var Schema = require("./schema");
 var types = require("./types");
 var util = require("./util");
 var Tuple = require("./tuple");
+var concurrency = require("./concurrency");
 
 
 
@@ -63,6 +64,10 @@ module.exports = function Table (tbl_name, schema, keys) {
             }
         }
         
+        if (!lock) {
+            lock = new concurrency.Lock();
+        }
+
         tup = new Tuple(tup, lock);
         this.tuples.push(tup);
     }
@@ -71,8 +76,15 @@ module.exports = function Table (tbl_name, schema, keys) {
        If the predicate is empty, all tuples are deleted. */
     // TODO: Take care of keys when deleting
     this.delete_tuples = function (pred) {
-        this.tuples = this.tuples.filter(function (t) { return !pred(t.values); });
+        this.tuples = this.tuples.filter(function (t) { return !pred(t.get_values()); });
     }
+
+    // TODO This doubles the time it takes to delete things. Any way we can
+    // cache this info about which tuples are going to be deleted?
+    this.get_delete_tuples = function (pred, txn_id) {
+        return this.tuples.filter(function (t) {return pred(t.get_values(txn_id));});
+    }
+        
 
     /* Updates tuples according to a mut(ation) and pred(icate) function.
        returns the number of tuples updated for logging */
@@ -85,11 +97,16 @@ module.exports = function Table (tbl_name, schema, keys) {
         var num_up = 0;
         for (var i = 0; i < this.tuples.length; i++) {
             tuple = this.tuples[i];
-            if (pred(tuple.values))
-                mut(tuple.values);
+            if (pred(tuple.get_values()))
+                mut(tuple.get_values());
                 num_up++;
         }
         return num_up;
+    }
+
+    this.clear = function (txn_id) {
+        /* Take care of null tuples arising from concurrent deletes. */
+        this.tuples = this.tuples.filter(function (t) {return t.get_values(txn_id) != null});
     }
 
     // Returns schema, tbl_name, and tuples

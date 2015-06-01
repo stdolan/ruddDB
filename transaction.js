@@ -38,7 +38,7 @@ module.exports = function Transaction (table, type, id) {
             }
             else {
                 var row_lock = new concurrency.Lock();
-                func_queue.enqueue(this.table.insert_tuple, [tups[i]],
+                func_queue.enqueue(this.table.insert_tuple, [tups[i], row_lock],
                                    row_lock, this.id, this.table);
             }
         }
@@ -72,8 +72,7 @@ module.exports = function Transaction (table, type, id) {
             this.table.delete_tuples(pred);
         }
         else {
-            /* TODO Lock the rows/table? We have to decide what to do
-               in these cases */
+            this.table.delete_concurrent(pred);
         }
 
         /* If we're not being quiet, tell the user what happened */
