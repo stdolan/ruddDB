@@ -5,13 +5,25 @@ module.exports = function (values, lock) {
     this.lock = lock;
 
     this.get_values = function (txn_id) {
-        if (this.lock.state == 1 && txn_id != lock.owner) {
+        if (this.lock.state == 1 && txn_id != this.lock.owner) {
             /* If the write lock is held, we should get the old values from the
                lock, assuming that we don't currently own the lock. */
             return this.lock.old_values;
         }
         else {
             return this.values;
+        }
+    }
+
+    this.set_values_with_lock = function (values, txn_id) {
+        /* Only allow the values to be set in this way if the txn is the current
+           owner of a set lock. */
+        if (this.lock.state == 1 && this.lock.owner == txn_id) {
+            this.lock.old_values = this.values;
+            this.values = values
+        }
+        else {
+            throw "Can't set values with lock if lock not owned!"
         }
     }
 }

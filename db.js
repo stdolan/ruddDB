@@ -69,8 +69,7 @@ exports.delete = function (tbl_name, pred) {
     //tables[tbl_name].delete_tuples(pred);
     var to_delete = tables[tbl_name].get_delete_tuples(pred, 0)
     var delete_func = function (tup) {
-        tup.lock.old_values = tup.values;
-        tup.values = null;
+        tup.set_values_with_lock(null, 0);
     }
 
     /* Queue each value for deletion */
@@ -84,8 +83,7 @@ exports.delete = function (tbl_name, pred) {
 
     /* And free all the locks. */
     for (var i = 0; i < to_delete.length; i++) {
-        to_delete[i].lock.state = 0;
-        to_delete[i].lock.owner = null;
+        to_delete[i].lock.free();
     }
 
     /* If we're not being quiet, tell the user what happened */
