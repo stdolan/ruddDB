@@ -75,13 +75,13 @@ module.exports = function Table (tbl_name, schema, keys) {
     /* delete_pred deletes tuples from the table which satisfy the predicate.
        If the predicate is empty, all tuples are deleted. */
     // TODO: Take care of keys when deleting
-    this.delete_tuples = function (pred) {
-        this.tuples = this.tuples.filter(function (t) { return !pred(t.get_values()); });
+    this.delete_tuples = function (pred, txn_id) {
+        this.tuples = this.tuples.filter(function (t) { return !pred(t.get_values(txn_id)); });
     }
 
     // TODO This doubles the time it takes to delete things. Any way we can
     // cache this info about which tuples are going to be deleted?
-    this.get_delete_tuples = function (pred, txn_id) {
+    this.filter_tuples = function (pred, txn_id) {
         return this.tuples.filter(function (t) {return pred(t.get_values(txn_id));});
     }
         
@@ -89,7 +89,7 @@ module.exports = function Table (tbl_name, schema, keys) {
     /* Updates tuples according to a mut(ation) and pred(icate) function.
        returns the number of tuples updated for logging */
     // TODO: Take care of keys when updating
-    this.update_tuples = function(mut, pred) {
+    this.update_tuples = function(mut, pred, txn_id) {
         /* Transform the given functions, then just update each record
            one by one. */
 
@@ -97,20 +97,21 @@ module.exports = function Table (tbl_name, schema, keys) {
         var num_up = 0;
         for (var i = 0; i < this.tuples.length; i++) {
             tuple = this.tuples[i];
-            if (pred(tuple.get_values()))
-                mut(tuple.get_values());
+            if (pred(tuple.get_values(txn_id)))
+                mut(tuple.get_values(txn_id));
                 num_up++;
         }
         return num_up;
     }
 
+	// Deletes all tuples with a null value. Used for finalizing concurrent deletes
     this.clear = function (txn_id) {
-        /* Take care of null tuples arising from concurrent deletes. */
         this.tuples = this.tuples.filter(function (t) {return t.get_values(txn_id) != null});
     }
 
     // Returns schema, tbl_name, and tuples
     this.get_data = function() {
+		throw "Not concurrent yet!"
         return {name   : this.tbl_name,
                 schema : [this.schema.names, this.schema.types],
                 tuples : this.tuples};
@@ -118,6 +119,7 @@ module.exports = function Table (tbl_name, schema, keys) {
 
     /* A helper for logging tuple deletion */
     this.num_tuples = function() {
+		throw "Not concurrent yet!"
         return this.tuples.length;
     }
 }

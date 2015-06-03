@@ -67,7 +67,7 @@ exports.delete = function (tbl_name, pred) {
     }
 
     //tables[tbl_name].delete_tuples(pred);
-    var to_delete = tables[tbl_name].get_delete_tuples(pred, 0)
+    var to_delete = tables[tbl_name].filter_tuples(pred, 0);
     var delete_func = function (tup) {
         tup.set_values_with_lock(null, 0);
     }
@@ -77,7 +77,7 @@ exports.delete = function (tbl_name, pred) {
         del_tup = to_delete[i]
         func_queue.enqueue(delete_func, [del_tup], del_tup.lock, 0, tables[tbl_name]);
     }
-
+	
     /* Go ahead and clear out the table. */
     tables[tbl_name].clear(0);
 
@@ -102,6 +102,7 @@ exports.update = function (tbl_name, mut, pred) {
     if(tbl === undefined)
         throw "Table " + tbl_name + " not found!";
 
+	// Prepare the pred and mut functions
     if (pred === undefined) {
         pred = function (tup) {return true;};
     } else {
@@ -109,13 +110,32 @@ exports.update = function (tbl_name, mut, pred) {
     }
 
     mut = util.transform_mut(mut, tbl.schema);
-    var num_up = tbl.update_tuples(mut, pred);
+	
+	// Grab the tuples to update
+	var num_up = 0;
+	var to_update = tables[tbl_name].filter_tuples(pred, 0);
+    var update_func = function (tup) {
+		num_up++;
+        tup.mutate_with_lock(mut, 0);
+    }
+	
+    /* Queue each value for updating */
+    for (var i = 0; i < to_update.length; i++) {
+        up_tup = to_update[i]
+        func_queue.enqueue(update_func, [up_tup], up_tup.lock, 0, tables[tbl_name]);
+    }
+
+	// TODO does func_queue complete before this runs?
+
+    /* Free all the locks. */
+    for (var i = 0; i < to_update.length; i++) {
+        to_update[i].lock.free();
+    }
 
     /* If we're not being quiet, tell the user what happened */
     if (!quiet) {
         console.log("Updated " + num_up + " rows!");
     }
-    
 }
 
 /* Helper function. If passed a table name, returns a table node, and if passed

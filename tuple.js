@@ -20,7 +20,19 @@ module.exports = function (values, lock) {
            owner of a set lock. */
         if (this.lock.state == 1 && this.lock.owner == txn_id) {
             this.lock.old_values = this.values;
-            this.values = values
+            this.values = values;
+        }
+        else {
+            throw "Can't set values with lock if lock not owned!"
+        }
+    }
+	
+    this.mutate_with_lock = function (mut, txn_id) {
+        /* Only allow the tuple to be mutated in this way if the txn is the current
+           owner of a set lock. */
+        if (this.lock.state == 1 && this.lock.owner == txn_id) {
+            this.lock.old_values = this.values;
+            mut(values);
         }
         else {
             throw "Can't set values with lock if lock not owned!"

@@ -72,6 +72,7 @@ module.exports = function Transaction (table, type, id) {
             this.table.delete_tuples(pred);
         }
         else {
+			// TODO what should this be?
             this.table.delete_concurrent(pred);
         }
 
