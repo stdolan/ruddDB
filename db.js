@@ -188,14 +188,14 @@ exports.union = function(left_child, right_child) {
     return new nodes.UnionNode(resolve_table(left_child), resolve_table(right_child));
 }
 
-exports.fold = function(child, group, fold) {
+exports.fold = function(child, group, fold, schema) {
 
     child = resolve_table(child);
 
     group = util.transform_pred(group, child.get_schema());
     fold = util.transform_fold(fold, child.get_schema());
 
-    return new nodes.FoldingNode(child, group, fold);
+    return new nodes.FoldingNode(child, group, fold, schema);
 }
 
 exports.start_transaction = transaction.start_transaction;
