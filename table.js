@@ -44,7 +44,7 @@ module.exports = function Table (tbl_name, schema, keys) {
 
     /* insert_tuple checks if tup matches the table's schema, then pushes
        the tuple into the table's tuple array if it does. */
-    this.insert_tuple = function (tup, lock) {
+    this.insert_tuple = function (tup, lock, in_transaction) {
         // If the tuple doesn't match the schema, it's an error.
         if (!schema.matches_tuple(tup)) {
             throw "Tuple doesn't match schema!";
@@ -69,6 +69,13 @@ module.exports = function Table (tbl_name, schema, keys) {
 
         tup = new Tuple(tup, lock);
         lock.tuple = tup;
+
+        /* If this was called from inside a transaction, set the old value to
+           null */
+        if (in_transaction) {
+            lock.old_values = null;
+        }
+
         this.tuples.push(tup);
     }
 

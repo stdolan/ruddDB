@@ -41,7 +41,7 @@ module.exports = function Transaction (table, type) {
             else {
                 var row_lock = new concurrency.Lock();
                 row_lock.tuple = tups[i];
-                func_queue.enqueue(this.table.insert_tuple, [tups[i], row_lock],
+                func_queue.enqueue(this.table.insert_tuple, [tups[i], row_lock, true],
                                    row_lock, this.id, this.table);
                 this.locks.push(row_lock);
             }
@@ -79,7 +79,8 @@ module.exports = function Transaction (table, type) {
         else {
             var to_delete = this.table.filter_tuples(pred, this.id);
             var delete_func = function (tup) {
-                tup.set_values_with_lock(null, this.id);}
+                tup.set_values_with_lock(null, this.id);
+            }
                 
             for (var i=0; i < to_delete.length; i++) {
                 del_tup = to_delete[i];
