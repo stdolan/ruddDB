@@ -9,6 +9,7 @@ var fs = require("fs");
 
 var tables = {};
 func_queue = new concurrency.FunctionQueue();
+var transaction_map = {};
 next_id = 1;
 quiet = 0;
 
@@ -235,6 +236,9 @@ exports.begin_transaction = function(tbl_name, type) {
     }
 
     var txn = new Transaction(tbl, type);
+    if(type == "lock") {
+        transaction_map[txn.id] = txn;
+    }
     return txn;
 }
 
@@ -281,4 +285,8 @@ exports._is_loaded =  function() {
 
 exports._get_tables = function () {
     return tables;
+}
+
+exports.get_func_queue = function() {
+    return func_queue;
 }

@@ -195,6 +195,7 @@ assert(util.array_deep_eq(db.eval(db.select('a')), [[5], [5], [8]]), "Failed to 
 
 db.unsilence();
 console.log("testing deadlock");
+console.log(db.get_func_queue());
 db.insert('a', [[6], [7]]);
 txn_1 = db.begin_transaction('a', 'lock');
 txn_2 = db.begin_transaction('a', 'lock');
@@ -210,8 +211,6 @@ console.log(db.eval(db.select('a')));
 txn_2.delete('a', function(num) {return num == 8});
 console.log(db.eval(db.select('a')));
 txn_1.commit();
-console.log(db.eval(db.select('a')));
-txn_2.commit();
 console.log(db.eval(db.select('a')));
 
 /* Test concurrency primitives */

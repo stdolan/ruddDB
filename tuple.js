@@ -19,7 +19,9 @@ module.exports = function (values, lock) {
         /* Only allow the values to be set in this way if the txn is the current
            owner of a set lock. */
         if (this.lock.state == 1 && this.lock.owner == txn_id) {
-            this.lock.old_values = this.values;
+            if(this.lock.old_values === undefined) {
+                this.lock.old_values = this.values.slice();
+            }
             this.values = values;
         }
         else {
@@ -31,7 +33,9 @@ module.exports = function (values, lock) {
         /* Only allow the tuple to be mutated in this way if the txn is the current
            owner of a set lock. */
         if (this.lock.state == 1 && this.lock.owner == txn_id) {
-            this.lock.old_values = this.values;
+            if(this.lock.old_values === undefined) {
+                this.lock.old_values = this.values.slice();
+            }
             mut(this.values);
         }
         else {
