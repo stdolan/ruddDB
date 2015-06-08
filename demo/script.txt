@@ -4,6 +4,8 @@ db.create("real_estate", sch);
 
 db.insert("real_estate", data.slice(1));
 
+db.dump("original");
+
 has_lots_of_beds = function (beds) {return beds > 6;};
 db.eval(db.select("real_estate", has_lots_of_beds);)
 
@@ -24,3 +26,5 @@ db.eval(db.project("real_estate", proj_sch, proj_func));
 var group_func = function(tup) {return [tup[4]];} /* Return number of beds */
 var aggre_func = function(acc, tup) { if(acc === undefined) { return [parseInt(tup[9])]; } return [acc[0] + parseInt(tup[9])]; } /* Sum price */
 db.eval(db.fold("real_estate", group_func, aggre_func));
+
+db.load("original");
