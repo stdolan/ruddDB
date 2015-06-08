@@ -3,6 +3,8 @@ var Schema = require("./schema");
 // Solely required for make_schema
 var types = require("./types");
 var util = require("./util");
+var Tuple = require("./tuple");
+var concurrency = require("./concurrency");
 
 
 
@@ -42,10 +44,9 @@ module.exports = function Table (tbl_name, schema, keys) {
 
     /* insert_tuple checks if tup matches the table's schema, then pushes
        the tuple into the table's tuple array if it does. */
-    this.insert_tuple = function (tup) {
+    this.insert_tuple = function (tup, lock, in_transaction) {
         // If the tuple doesn't match the schema, it's an error.
         if (!schema.matches_tuple(tup)) {
-            console.log(tup);
             throw "Tuple doesn't match schema!";
         }
 
@@ -62,6 +63,18 @@ module.exports = function Table (tbl_name, schema, keys) {
             }
         }
         
+        if (!lock) {
+            lock = new concurrency.Lock();
+        }
+
+        tup = new Tuple(tup, lock);
+        lock.tuple = tup;
+
+        /* If this was called from inside a transaction, set the old value to
+           null */
+        if (in_transaction) {
+            lock.old_values = null;
+        }
 
         this.tuples.push(tup);
     }
@@ -69,14 +82,22 @@ module.exports = function Table (tbl_name, schema, keys) {
     /* delete_pred deletes tuples from the table which satisfy the predicate.
        If the predicate is empty, all tuples are deleted. */
     // TODO: Take care of keys when deleting
-    this.delete_tuples = function (pred) {
-        this.tuples = this.tuples.filter(function (t) { return !pred(t); });
+    this.delete_tuples = function (pred, txn_id) {
+        this.tuples = this.tuples.filter(function (t) { return !pred(t.get_values(txn_id)); });
     }
+
+    // TODO This doubles the time it takes to delete things. Any way we can
+    // cache this info about which tuples are going to be deleted?
+    this.filter_tuples = function (pred, txn_id) {
+        return this.tuples.filter(function (t) {return t.get_values(txn_id) !== null
+                                    && pred(t.get_values(txn_id));});
+    }
+        
 
     /* Updates tuples according to a mut(ation) and pred(icate) function.
        returns the number of tuples updated for logging */
     // TODO: Take care of keys when updating
-    this.update_tuples = function(mut, pred) {
+    this.update_tuples = function(mut, pred, txn_id) {
         /* Transform the given functions, then just update each record
            one by one. */
 
@@ -84,23 +105,28 @@ module.exports = function Table (tbl_name, schema, keys) {
         var num_up = 0;
         for (var i = 0; i < this.tuples.length; i++) {
             tuple = this.tuples[i];
-            if (pred(tuple)) {
-                mut(tuple);
+            if (pred(tuple.get_values(txn_id)))
+                mut(tuple.get_values(txn_id));
                 num_up++;
-            }
         }
         return num_up;
     }
 
+	// Deletes all tuples with a null value. Used for finalizing concurrent deletes
+    this.clear = function (txn_id) {
+        this.tuples = this.tuples.filter(function (t) {return t.get_values(txn_id) != null});
+    }
+
     // Returns schema, tbl_name, and tuples
-    this.get_data = function() {
+    this.get_data = function(txn_id) {
         return {name   : this.tbl_name,
                 schema : [this.schema.names, this.schema.types],
-                tuples : this.tuples};
+                tuples : this.tuples.map(function (tup) {return tup.get_values(txn_id)})};
     }
 
     /* A helper for logging tuple deletion */
     this.num_tuples = function() {
-        return this.tuples.length;
+//		throw "Not concurrent yet!"
+//        return this.tuples.length;
     }
 }

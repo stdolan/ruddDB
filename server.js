@@ -1,15 +1,13 @@
 var http = require("http");
 var port = 8090;
 var db = require("./db");
-var max_id = 0;
 
 var server = http.createServer(function (req, res) {
     if (req.method === "GET") {
-        var client_id = (max_id++).toString();
         res.writeHead(200, {
-            'Content-Length': client_id.length,
+            'Content-Length': 0,
             'Content-Type': 'text/plain'});
-        res.end(client_id);
+        res.end();
     }
 
     else if (req.method === "POST") {

@@ -9,17 +9,10 @@ var prompt = rl.createInterface({
     output: process.stdout
 });
 
-var id = "";
-
 http.get(url, function(res) {
     if (res.statusCode === 200) {
         console.log("Connected to " + url + ".");
-        res.on("data", function(chunk) {
-            id += chunk;
-        });
-        res.on("end", function() {
-            prompt.question("> ", get_input);
-        });
+        prompt.question("> ", get_input);
     }
     else
         console.log("Got code " + res.statusCode + ".");

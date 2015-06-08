@@ -6,6 +6,7 @@ var nodes = require("./nodes");
 var parser = require("./parser");
 var types = require("./types");
 var util = require("./util");
+var concurrency = require("./concurrency");
 
 function assert(condition, message) {
     if (!condition) {
@@ -17,7 +18,7 @@ function assert(condition, message) {
 function test_plan(plan, expected) {
     var actual = [];
     var tup = plan.next_tuple();
-    while(tup !== null) {
+    while(tup !== undefined) {
         actual.push(tup);
         tup = plan.next_tuple();
     }
@@ -115,10 +116,10 @@ plan = new nodes.FoldingNode(
     new nodes.TableNode(table_a),
     function (tup) { return [tup[0].length]; },
     function (acc, tup) { if(acc === undefined) { acc = ['']; }
-                          return [acc[0] + tup[0]]; },
-    "foldingTest",
-    new Schema(['word length', 'concatted tuple'], [types.INTEGER, types.BOOLEAN]));
+                          return [acc[0] + tup[0]]; });
 test_plan(plan, [[3, 'dogcat'], [7, 'giraffe']]);
+
+// TODO test queries! db.select is different from SelectNode...
 
 /* Test inserts */
 // TODO: test inserts with keys!
@@ -150,46 +151,6 @@ db.delete("a");
 assert(util.array_deep_eq(db.eval(db.select("a")), []),
         "Failed to delete without predicate!")
 
-		
-/* Test transactions */
-console.log("Testing transactions");
-db.create('a', new Schema(['num'], [types.INTEGER]));
-db.insert('a', [[3], [4], [5]]);
-
-// There's no client to set the txn_id for us, so we do it by hand here
-var id_1 = db.start_transaction();
-txn_id = id_1;
-db.delete('a', function(num) {return num == 5});
-assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4]]), "Failed to update in txn 1");
-
-txn_id = 0;
-assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5]]), "Failed to preserve original state");
-
-var id_2 = db.start_transaction();
-txn_id = id_2;
-db.insert('a', [[6]]);
-assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5], [6]]), "Failed to update in txn 2");
-
-txn_id = id_1;
-db.update('a', function(num) {num = num - 1}, function (num) {return num == 3});
-assert(util.array_deep_eq(db.eval(db.select('a')), [[2], [4]]), "Failed to switch back to txn 1");
-
-txn_id = id_2;
-db.commit();
-txn_id = 0;
-assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5], [6]]), "Failed to commit txn 2");
-
-txn_id = id_1;
-var flag = false;
-try {
-	db.commit();
-} catch(err) {
-	flag = true;
-}
-assert(flag, "Commiting txn 1 should have failed, but didn't");
-
-// Set back to no transaction
-txn_id = 0;
 
 // TODO wrap this into the query tests. right now, i'm just putting it here
 // to demonstrate proper fold usage
@@ -201,7 +162,39 @@ assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '{0} @ + num')), [[1
 // don't do this one! but it works...
 assert(util.array_deep_eq(db.eval(db.fold('a', "[num % 2]", '@ + {0}num')), [[1, 8],[0,4]]));
 
+/* Test transactions */
+console.log("Testing transactions");
+db.create('a', new Schema(['num'], [types.INTEGER]));
+db.insert('a', [[3], [4], [5]]);
+test_txn = db.begin_transaction('a', 'copy');
+test_txn.delete('a', function(num) {return num == 5})
+test_txn.insert('a', [[6]]);
+test_txn.update('a', function(num) {num = num + 1}, function (num) {return num == 3});
+assert(util.array_deep_eq(db.eval(test_txn.select('a')), [[4], [4], [6]]), "Failed to update in txn")
+assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5]]), "Failed to save original table")
+test_txn.commit();
+assert(util.array_deep_eq(db.eval(db.select('a')), [[4], [4], [6]]), "Failed to commit")
 
+test_txn = db.begin_transaction('a', 'lock');
+test_txn.delete('a', function(num) {return num == 6})
+test_txn.insert('a', [[8]]);
+test_txn.update('a', function(num) {num = num + 1}, function (num) {return num == 4});
+assert(util.array_deep_eq(db.eval(test_txn.select('a')), [[5], [5], [8]]), "Failed to update in txn")
+assert(util.array_deep_eq(db.eval(db.select('a')), [[4], [4], [6]]), "Failed to save original table")
+test_txn.commit();
+assert(util.array_deep_eq(db.eval(db.select('a')), [[5], [5], [8]]), "Failed to commit")
 
+/* Test deadlock */
+
+console.log("Testing deadlock");
+db.insert('a', [[6], [7]]);
+txn_1 = db.begin_transaction('a', 'lock');
+txn_2 = db.begin_transaction('a', 'lock');
+txn_1.update('a', function(num) {num = num + 1}, function(num) {return num == 7});
+txn_2.update('a', function(num) {num = num + 1}, function(num) {return num == 5});
+txn_1.delete('a', function(num) {return num == 5});
+txn_2.delete('a', function(num) {return num == 7});
+txn_2.commit();
+assert(util.array_deep_eq(db.eval(db.select('a')), [[6], [6], [8], [6]]), "Failed to commit")
 
 console.log("All tests passed!");

@@ -8,7 +8,7 @@ var util = require('./util');
  * All nodes must have the following functions:
  * reset() - resets the stream of tuples to its start
  * get_schema() - returns the schema of the returned tuples
- * next_tuple() - returns the next tuple in the stream, or null if the stream
+ * next_tuple() - returns the next tuple in the stream, or undefined if the stream
  *     is exhausted. If this is called multiple times after the stream is
  *     exhausted, it must not crash.
  * Additionally, they must be prepared upon creation, without an init method.
@@ -48,7 +48,7 @@ function TableNode(t) {
             return table.tuples[index++];
         }
         else {
-            return null;
+            return undefined;
         }
     }
     
@@ -57,18 +57,23 @@ function TableNode(t) {
     }
 }
 
-function SelectNode(child, pred, name) {
+function SelectNode(child, pred, name, txn_id) {
 
     // eta reduction, yo
     this.reset = child.reset;
     this.get_schema = child.get_schema;
+    this.txn_id = txn_id
 
     this.next_tuple = function () {
         while(true) {
             var tuple = child.next_tuple();
-
-            if(tuple === null || pred(tuple)) {
-                return tuple;
+            if(tuple === undefined || pred(tuple.get_values(this.txn_id))) {
+                if (tuple) {
+                    return tuple.get_values(this.txn_id);
+                }
+                else {
+                    return undefined;
+                }
             }
         }
     }
@@ -105,18 +110,18 @@ function JoinNode(left, right, name) {
 
     this.next_tuple = function () {
         // If the left child is empty
-        if(currLeft === null)
-            return null;
+        if(currLeft === undefined)
+            return undefined;
 
         var nextRight = right.next_tuple();
-        if(nextRight === null) { // we exhausted the right
+        if(nextRight === undefined) { // we exhausted the right
             right.reset();
             nextRight = right.next_tuple();
             currLeft = left.next_tuple();
-            if(currLeft === null)
-                return null;
+            if(currLeft === undefined)
+                return undefined;
         }
-        return currLeft.concat(nextRight);
+        return currLeft.get_values().concat(nextRight.get_values());
     }
     
     this.get_name = function () {
@@ -135,9 +140,9 @@ function ProjectNode(child, schema, project, name) {
 
     this.next_tuple = function () {
         var tup = child.next_tuple();
-        if(tup === null)
-            return null;
-        var new_tup = project(tup);
+        if(tup === undefined)
+            return undefined;
+        var new_tup = project(tup.get_values());
         if (!schema.matches_tuple(new_tup)) {
             throw "Tuple doesn't match schema!";
         }
@@ -160,9 +165,15 @@ function UnionNode(left, right, name) {
 
     this.next_tuple = function() {
         var tup = left.next_tuple();
-        if(tup !== null)
-            return tup;
-        return right.next_tuple();
+        if(tup !== undefined)
+            return tup.get_values();
+        var right_next = right.next_tuple()
+        if (right_next) {
+            return right_next.get_values();
+        }
+        else {
+            return undefined;
+        }
     }
     
     this.get_name = function () {
@@ -182,8 +193,7 @@ function UnionNode(left, right, name) {
 // fold_func takes an accumulated value (which may be undefined), and a tuple,
 // and folds the tuple into the accumulator. You should be thinking "things you
 // can pass foldl (for Haskell) or reduce (for Python).
-// schema is the schema of the resulting node.
-function FoldingNode(child, group_func, fold_func, name, schema) {
+function FoldingNode(child, group_func, fold_func, name) {
 
     var tuples_prepared = false;
     var index = 0;
@@ -194,8 +204,8 @@ function FoldingNode(child, group_func, fold_func, name, schema) {
 
     function prepare_tuples() {
         var tup = child.next_tuple();
-        while(tup != null) {
-            var group_tup = group_func(tup);
+        while(tup != undefined) {
+            var group_tup = group_func(tup.get_values());
             var group_index = undefined;
             for(var i = 0; i < grouping_vars.length; i++)
                 if(util.array_deep_eq(grouping_vars[i], group_tup))
@@ -207,7 +217,7 @@ function FoldingNode(child, group_func, fold_func, name, schema) {
                 aggregate_vars.push(undefined);
             }
 
-            aggregate_vars[group_index] = fold_func(aggregate_vars[group_index], tup);
+            aggregate_vars[group_index] = fold_func(aggregate_vars[group_index], tup.get_values());
             tup = child.next_tuple();
         }
 
@@ -220,7 +230,7 @@ function FoldingNode(child, group_func, fold_func, name, schema) {
     }
 
     this.get_schema = function() {
-        return schema;
+        // TODO
     }
 
     this.next_tuple = function() {
@@ -228,7 +238,7 @@ function FoldingNode(child, group_func, fold_func, name, schema) {
             prepare_tuples()
 
         if(index == grouping_vars.length)
-            return null;
+            return undefined;
 
         var tup = grouping_vars[index].concat(aggregate_vars[index]);
         index++;
