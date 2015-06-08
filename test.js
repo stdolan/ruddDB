@@ -176,65 +176,25 @@ test_txn.commit();
 assert(util.array_deep_eq(db.eval(db.select('a')), [[4], [4], [6]]), "Failed to commit")
 
 test_txn = db.begin_transaction('a', 'lock');
-console.log(db.eval(test_txn.select('a')));
 test_txn.delete('a', function(num) {return num == 6})
-console.log("ran delete");
-console.log(db.eval(test_txn.select('a')));
 test_txn.insert('a', [[8]]);
-console.log("ran insert");
-console.log(db.eval(test_txn.select('a')));
 test_txn.update('a', function(num) {num = num + 1}, function (num) {return num == 4});
-console.log("ran update");
-console.log(db.eval(test_txn.select('a')));
 assert(util.array_deep_eq(db.eval(test_txn.select('a')), [[5], [5], [8]]), "Failed to update in txn")
-//assert(util.array_deep_eq(db.eval(db.select('a')), [[3], [4], [5]]), "Failed to save original table")
+assert(util.array_deep_eq(db.eval(db.select('a')), [[4], [4], [6]]), "Failed to save original table")
 test_txn.commit();
 assert(util.array_deep_eq(db.eval(db.select('a')), [[5], [5], [8]]), "Failed to commit")
 
 /* Test deadlock */
 
-db.unsilence();
-console.log("testing deadlock");
-console.log(db.get_func_queue());
+console.log("Testing deadlock");
 db.insert('a', [[6], [7]]);
 txn_1 = db.begin_transaction('a', 'lock');
 txn_2 = db.begin_transaction('a', 'lock');
-console.log(txn_1.id);
-console.log(txn_2.id);
-console.log(db.eval(db.select('a')));
 txn_1.update('a', function(num) {num = num + 1}, function(num) {return num == 7});
-console.log(db.eval(txn_1.select('a')));
 txn_2.update('a', function(num) {num = num + 1}, function(num) {return num == 5});
-console.log(db.eval(db.select('a')));
 txn_1.delete('a', function(num) {return num == 5});
-console.log(db.eval(txn_1.select('a')));
 txn_2.delete('a', function(num) {return num == 7});
-console.log(db.eval(txn_1.select('a')));
-txn_1.commit();
-console.log(db.eval(db.select('a')));
-
-/* Test concurrency primitives */
-console.log("Testing concurrency");
-
-func_queue = new concurrency.FunctionQueue();
-
-val = [0, 0, 0]
-
-write_val = function (num, spot) {
-    val[spot] = num;
-}
-
-lock1 = new concurrency.Lock();
-lock2 = new concurrency.Lock();
-lock3 = new concurrency.Lock();
-
-func_queue.enqueue(write_val, [1, 0], lock1, 0);
-func_queue.enqueue(write_val, [2, 1], lock2, 1);
-func_queue.enqueue(write_val, [3, 2], lock3, 2);
-func_queue.enqueue(write_val, [3, 0], lock1, 2);
-func_queue.enqueue(write_val, [1, 1], lock2, 0);
-func_queue.enqueue(write_val, [2, 2], lock3, 1);
-
-assert(util.array_deep_eq(val, [1, 1, 3]));
+txn_2.commit();
+assert(util.array_deep_eq(db.eval(db.select('a')), [[6], [6], [8], [6]]), "Failed to commit")
 
 console.log("All tests passed!");

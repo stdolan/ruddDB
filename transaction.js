@@ -46,7 +46,6 @@ module.exports = function Transaction (table, type) {
                 this.locks.push(row_lock);
             }
         }
-        console.log(this.table.tuples);
 
         /* If we're not being quiet, tell the user what happened */
         if (!quiet) {
