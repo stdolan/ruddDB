@@ -126,8 +126,6 @@ exports.update = function (tbl_name, mut, pred) {
         func_queue.enqueue(update_func, [up_tup], up_tup.lock, 0, tables[tbl_name]);
     }
 
-	// TODO does func_queue complete before this runs?
-
     /* Free all the locks. */
     for (var i = 0; i < to_update.length; i++) {
         to_update[i].lock.free();
@@ -197,7 +195,6 @@ exports.join = function(left_child, right_child, join_type) {
     throw "Join type \"" + join_type + "\" is unsupported";
 }
 
-// TODO making the user specify the schema is gross. can we do better?
 exports.project = function(child, schema, project) {
 
     child = resolve_table(child);
