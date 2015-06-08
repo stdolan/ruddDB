@@ -68,6 +68,10 @@ module.exports = function Table (tbl_name, schema, keys) {
         }
 
         tup = new Tuple(tup, lock);
+        tup.lock.old_values = null;
+        lock.tuple = tup;
+        console.log(lock);
+        console.log(tup);
         this.tuples.push(tup);
     }
 
@@ -81,7 +85,8 @@ module.exports = function Table (tbl_name, schema, keys) {
     // TODO This doubles the time it takes to delete things. Any way we can
     // cache this info about which tuples are going to be deleted?
     this.filter_tuples = function (pred, txn_id) {
-        return this.tuples.filter(function (t) {return pred(t.get_values(txn_id));});
+        return this.tuples.filter(function (t) {return t.get_values(txn_id) !== null
+                                    && pred(t.get_values(txn_id));});
     }
         
 

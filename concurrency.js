@@ -6,12 +6,14 @@ exports.Lock = function () {
     this.state = 0;
     this.owner = null;
     this.old_values = undefined;
+    this.tuple = undefined;
 
     this.free = function () {
         this.state = 0;
         this.owner = null;
         this.old_values = undefined;
     }
+    
 }
 
 /* Want Nodes for use in determining deadlock in the function queue. */

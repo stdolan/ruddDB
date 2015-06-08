@@ -62,13 +62,16 @@ function SelectNode(child, pred, name, txn_id) {
     // eta reduction, yo
     this.reset = child.reset;
     this.get_schema = child.get_schema;
+    this.txn_id = txn_id
 
     this.next_tuple = function () {
         while(true) {
             var tuple = child.next_tuple();
-            if(tuple === null || pred(tuple.get_values())) {
+            console.log("selecting a tuple");
+//            console.log(tuple);
+            if(tuple === null || pred(tuple.get_values(this.txn_id))) {
                 if (tuple) {
-                    return tuple.get_values(txn_id);
+                    return tuple.get_values(this.txn_id);
                 }
                 else {
                     return null;

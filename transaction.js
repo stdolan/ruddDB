@@ -40,11 +40,13 @@ module.exports = function Transaction (table, type) {
             }
             else {
                 var row_lock = new concurrency.Lock();
+                row_lock.tuple = tups[i];
                 func_queue.enqueue(this.table.insert_tuple, [tups[i], row_lock],
                                    row_lock, this.id, this.table);
                 this.locks.push(row_lock);
             }
         }
+        console.log(this.table.tuples);
 
         /* If we're not being quiet, tell the user what happened */
         if (!quiet) {
@@ -84,7 +86,7 @@ module.exports = function Transaction (table, type) {
                 func_queue.enqueue(delete_func, [del_tup], del_tup.lock, this.id, this);
             }
             
-            this.table.clear(this.id);
+//            this.table.clear(this.id);
             
             for (var i = 0; i < to_delete.length; i++) {
                 this.locks.push(to_delete[i].lock);
@@ -157,6 +159,25 @@ module.exports = function Transaction (table, type) {
         return new nodes.SelectNode(new nodes.TableNode(this.table), pred, null, this.id);
     }
 
+    this.rollback = function () {
+        if(type == "copy") {
+            delete(this.table);
+        }
+        else {
+            for (var i = 0; i < this.locks.length; i++) {
+                //revert to original values
+                if (locks[i].old_values !== null) {
+                    locks[i].tuple.values = locks[i].old_values.slice();
+                }
+            }
+            this.table.clear(this.id);
+            for (var i = 0; i < this.locks.length; i++) {
+                this.locks[i].free();
+            }
+            this.locks = [];
+        }
+    }
+    
     this.commit = function () {
         switch(type) {
             case "copy":
@@ -164,6 +185,7 @@ module.exports = function Transaction (table, type) {
                 this.orig.tuples = this.table.tuples;
                 break;
             case "lock":
+                this.table.clear(this.id);
                 for (var i = 0; i < this.locks.length; i++) {
                     this.locks[i].free();
                 }
