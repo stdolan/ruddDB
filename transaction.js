@@ -7,7 +7,7 @@ var nodes = require("./nodes");
 var concurrency = require("./concurrency");
 var Tuple = require ("./tuple");
 
-module.exports = function Transaction (table, type) {
+module.exports = function Transaction (table, type, next_id) {
     
     /* Set up the transaction depending on the type */
     switch(type) {
@@ -20,7 +20,7 @@ module.exports = function Transaction (table, type) {
         case "lock":
             this.type = "lock";
             this.table = table;
-            this.id = next_id++;
+            this.id = next_id;
             this.locks = [];
             break;
 
