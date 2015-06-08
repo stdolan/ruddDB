@@ -7,7 +7,7 @@ db.insert("real_estate", data.slice(1));
 db.dump("original");
 
 has_lots_of_beds = function (beds) {return beds > 6;};
-db.eval(db.select("real_estate", has_lots_of_beds);)
+db.eval(db.select("real_estate", has_lots_of_beds))
 
 is_mf = function (type) {return type == "Multi-Family";};
 change_to_md = function (type) {type = "Multidwelling";};
@@ -27,4 +27,41 @@ var group_func = function(tup) {return [tup[4]];} /* Return number of beds */
 var aggre_func = function(acc, tup) { if(acc === undefined) { return [parseInt(tup[9])]; } return [acc[0] + parseInt(tup[9])]; } /* Sum price */
 db.eval(db.fold("real_estate", group_func, aggre_func));
 
+db.create('simple', new Schema(['num'], [types.INTEGER]));
+db.insert('simple', [[0], [1]]);
+txn_1 = db.begin_transaction('simple', 'lock');
+txn_2 = db.begin_transaction('simple', 'lock');
+txn_1.update('simple', function(num) {num = 10}, function(num) {return num == 1});
+txn_2.update('simple', function(num) {num = 20}, function(num) {return num == 0});
+txn_1.update('simple', function(num) {num = 10}, function(num) {return num == 0});
+txn_2.update('simple', function(num) {num = 20}, function(num) {return num == 1});
+assert(util.array_deep_eq(db.eval(db.select('simple')), [[0], [1]]), "Failed to save original table")
+txn_2.commit();
+assert(util.array_deep_eq(db.eval(db.select('simple')), [[20], [20]]), "Failed to commit")
+
+txn = db.begin_transaction("real_estate", "copy");
+txn.delete('real_estate', function (price) {return price > 400000});
+ft_to_m = function(sq__ft) {sq__ft = "" + (parseFloat(sq__ft) * 0.0929);};
+txn.update('real_estate', ft_to_m, function () {return true;});
+db.eval(db.select('real_estate')); /* UNCHANGED */
+txn.commit();
+db.eval(db.select('real_estate')); /* changed after commit */
+
+txn_1 = db.begin_transaction('real_estate', 'lock');
+txn_2 = db.begin_transaction('real_estate', 'lock');
+txn_1.delete('real_estate', function(zip) {return zip != 95842});
+txn_2.update('real_estate', function(beds) {beds = beds * 2;},
+                            function(type) {return type == 'Condo';});
+txn_1.update('real_estate', function(bath) {bath = bath + 17;},
+                            function(bath) {return bath <= 5;});
+txn_2.update('real_estate', function(price) {price *= 1.4;},
+						    function(zip) {return zip == 95842;});
+db.eval(db.select('real_estate'));
+db.eval(txn_1.select('real_estate'));
+txn_1.commit();
+db.eval(db.select('real_estate'));
+
+db.eval(db.select("real_estate", is_md));
+
 db.load("original");
+db.eval(db.select("real_estate", is_md));

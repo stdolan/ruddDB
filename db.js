@@ -50,7 +50,7 @@ exports.insert = function (tbl_name, tups) {
 /* Deletes tuples from a table that satisfy the given predicate
    Equivalent to SQL: DELETE FROM tbl_name WHERE pred */
 exports.delete = function (tbl_name, pred) {
-
+    var pre_len, post_len;
     var tbl = tables[tbl_name];
     if(tbl === undefined)
         throw "Table " + tbl_name + " not found!";
@@ -65,7 +65,7 @@ exports.delete = function (tbl_name, pred) {
     /* Only get the number of rows if we need it to log, since it can be an
        expensive operation on very large tables */
     if (!quiet) {
-        var pre_len = tables[tbl_name].num_tuples();
+        pre_len = tables[tbl_name].num_tuples();
     }
 
     //tables[tbl_name].delete_tuples(pred);
@@ -90,7 +90,7 @@ exports.delete = function (tbl_name, pred) {
 
     /* If we're not being quiet, tell the user what happened */
     if (!quiet) {
-        var post_len = tables[tbl_name].num_tuples();
+        post_len = tables[tbl_name].num_tuples();
         console.log("Deleted " + (pre_len - post_len) + " rows!");
     }
 }
@@ -249,7 +249,7 @@ exports.begin_transaction = function(tbl_name, type) {
 exports.dump = function(filename) {
     filename = filename + ".dat";
     var data = {};
-    data.tables = []
+    data.tables = [];
     for (table in tables)
         // See get_data() for more on how the data is structured
         data.tables.push(tables[table].get_data(0));
@@ -263,7 +263,10 @@ exports.load = function(filename) {
     filename = filename + ".dat";
     var data_str = fs.readFileSync(filename);
     var data = JSON.parse(data_str);
-    
+
+    // Destroy previous db.
+    tables = {};
+
     /* Reconstruct each table */
     for (var i = 0; i < data.tables.length; i++) {
         table = data.tables[i];
