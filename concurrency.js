@@ -38,13 +38,11 @@ exports.FunctionQueue = function () {
 
     this.exec_proc = function () {
         proc = this.queue.shift();
-
         var lock = proc[2];
         var txn_id = proc[3];
-
         if (lock.state == 0) {
             lock.state = 1;
-            lock.owner = txn_id
+            lock.owner = txn_id;
             /* If we have a container specified, we should use that to apply
                the function (important for evaluating table functions under
                tables.) */

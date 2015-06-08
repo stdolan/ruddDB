@@ -47,7 +47,6 @@ module.exports = function Table (tbl_name, schema, keys) {
     this.insert_tuple = function (tup, lock) {
         // If the tuple doesn't match the schema, it's an error.
         if (!schema.matches_tuple(tup)) {
-            console.log(tup);
             throw "Tuple doesn't match schema!";
         }
 
@@ -119,7 +118,7 @@ module.exports = function Table (tbl_name, schema, keys) {
 
     /* A helper for logging tuple deletion */
     this.num_tuples = function() {
-		throw "Not concurrent yet!"
-        return this.tuples.length;
+//		throw "Not concurrent yet!"
+//        return this.tuples.length;
     }
 }

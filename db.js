@@ -9,6 +9,7 @@ var fs = require("fs");
 
 var tables = {};
 func_queue = new concurrency.FunctionQueue();
+next_id = 1;
 quiet = 0;
 
 

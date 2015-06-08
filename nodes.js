@@ -57,7 +57,7 @@ function TableNode(t) {
     }
 }
 
-function SelectNode(child, pred, name) {
+function SelectNode(child, pred, name, txn_id) {
 
     // eta reduction, yo
     this.reset = child.reset;
@@ -66,10 +66,9 @@ function SelectNode(child, pred, name) {
     this.next_tuple = function () {
         while(true) {
             var tuple = child.next_tuple();
-
             if(tuple === null || pred(tuple.get_values())) {
                 if (tuple) {
-                    return tuple.get_values();
+                    return tuple.get_values(txn_id);
                 }
                 else {
                     return null;

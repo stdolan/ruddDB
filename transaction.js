@@ -5,8 +5,9 @@ var Table = require("./table");
 var util = require("./util");
 var nodes = require("./nodes");
 var concurrency = require("./concurrency");
+var Tuple = require ("./tuple");
 
-module.exports = function Transaction (table, type, id) {
+module.exports = function Transaction (table, type) {
     
     /* Set up the transaction depending on the type */
     switch(type) {
@@ -19,7 +20,8 @@ module.exports = function Transaction (table, type, id) {
         case "lock":
             this.type = "lock";
             this.table = table;
-            this.id = id;
+            this.id = next_id++;
+            this.locks = [];
             break;
 
         default:
@@ -40,6 +42,7 @@ module.exports = function Transaction (table, type, id) {
                 var row_lock = new concurrency.Lock();
                 func_queue.enqueue(this.table.insert_tuple, [tups[i], row_lock],
                                    row_lock, this.id, this.table);
+                this.locks.push(row_lock);
             }
         }
 
@@ -72,8 +75,20 @@ module.exports = function Transaction (table, type, id) {
             this.table.delete_tuples(pred);
         }
         else {
-			// TODO what should this be?
-            this.table.delete_concurrent(pred);
+            var to_delete = this.table.filter_tuples(pred, this.id);
+            var delete_func = function (tup) {
+                tup.set_values_with_lock(null, this.id);}
+                
+            for (var i=0; i < to_delete.length; i++) {
+                del_tup = to_delete[i];
+                func_queue.enqueue(delete_func, [del_tup], del_tup.lock, this.id, this);
+            }
+            
+            this.table.clear(this.id);
+            
+            for (var i = 0; i < to_delete.length; i++) {
+                this.locks.push(to_delete[i].lock);
+            }
         }
 
         /* If we're not being quiet, tell the user what happened */
@@ -94,19 +109,30 @@ module.exports = function Transaction (table, type, id) {
         } else {
             pred = util.transform_pred(pred, this.table.schema);
         }
-
+        
+        mut = util.transform_mut(mut, this.table.schema);
+        var num_up;
         if (this.type == "copy") {
-            mut = util.transform_mut(mut, this.table.schema);
+            num_up = this.table.update_tuples(mut, pred);
         }
         else {
-            /* TODO Lock the rows/table? We have to decide what to do
-               in these cases */
+            num_up = 0;
+            var to_update = this.table.filter_tuples(pred, this.id);
+            var update_func = function (tup) {
+                num_up++;
+                tup.mutate_with_lock(mut, this.id);
+            }
+            /* Queue each value for updating */
+            for (var i = 0; i < to_update.length; i++) {
+                up_tup = to_update[i]
+                func_queue.enqueue(update_func, [up_tup], up_tup.lock, this.id, this);
+            }
+            
+            /* Push locks to be freed. */
+            for (var i = 0; i < to_update.length; i++) {
+                this.locks.push(to_update[i].lock);
+            } 
         }
-
-
-
-
-        var num_up = this.table.update_tuples(mut, pred);
 
         /* If we're not being quiet, tell the user what happened */
         if (!quiet) {
@@ -127,8 +153,8 @@ module.exports = function Transaction (table, type, id) {
         } else {
             pred = util.transform_pred(pred, this.table.schema);
         }
-
-        return new nodes.SelectNode(new nodes.TableNode(this.table), pred);
+        
+        return new nodes.SelectNode(new nodes.TableNode(this.table), pred, null, this.id);
     }
 
     this.commit = function () {
@@ -138,7 +164,10 @@ module.exports = function Transaction (table, type, id) {
                 this.orig.tuples = this.table.tuples;
                 break;
             case "lock":
-                /* TODO Free all the locks? */
+                for (var i = 0; i < this.locks.length; i++) {
+                    this.locks[i].free();
+                }
+                this.locks = [];
                 break;
         }
     }
