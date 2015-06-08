@@ -8,7 +8,7 @@ var util = require('./util');
  * All nodes must have the following functions:
  * reset() - resets the stream of tuples to its start
  * get_schema() - returns the schema of the returned tuples
- * next_tuple() - returns the next tuple in the stream, or null if the stream
+ * next_tuple() - returns the next tuple in the stream, or undefined if the stream
  *     is exhausted. If this is called multiple times after the stream is
  *     exhausted, it must not crash.
  * Additionally, they must be prepared upon creation, without an init method.
@@ -48,7 +48,7 @@ function TableNode(t) {
             return table.tuples[index++];
         }
         else {
-            return null;
+            return undefined;
         }
     }
     
@@ -67,14 +67,12 @@ function SelectNode(child, pred, name, txn_id) {
     this.next_tuple = function () {
         while(true) {
             var tuple = child.next_tuple();
-            console.log("selecting a tuple");
-//            console.log(tuple);
-            if(tuple === null || pred(tuple.get_values(this.txn_id))) {
+            if(tuple === undefined || pred(tuple.get_values(this.txn_id))) {
                 if (tuple) {
                     return tuple.get_values(this.txn_id);
                 }
                 else {
-                    return null;
+                    return undefined;
                 }
             }
         }
@@ -112,16 +110,16 @@ function JoinNode(left, right, name) {
 
     this.next_tuple = function () {
         // If the left child is empty
-        if(currLeft === null)
-            return null;
+        if(currLeft === undefined)
+            return undefined;
 
         var nextRight = right.next_tuple();
-        if(nextRight === null) { // we exhausted the right
+        if(nextRight === undefined) { // we exhausted the right
             right.reset();
             nextRight = right.next_tuple();
             currLeft = left.next_tuple();
-            if(currLeft === null)
-                return null;
+            if(currLeft === undefined)
+                return undefined;
         }
         return currLeft.get_values().concat(nextRight.get_values());
     }
@@ -142,8 +140,8 @@ function ProjectNode(child, schema, project, name) {
 
     this.next_tuple = function () {
         var tup = child.next_tuple();
-        if(tup === null)
-            return null;
+        if(tup === undefined)
+            return undefined;
         var new_tup = project(tup.get_values());
         if (!schema.matches_tuple(new_tup)) {
             throw "Tuple doesn't match schema!";
@@ -167,14 +165,14 @@ function UnionNode(left, right, name) {
 
     this.next_tuple = function() {
         var tup = left.next_tuple();
-        if(tup !== null)
+        if(tup !== undefined)
             return tup.get_values();
         var right_next = right.next_tuple()
         if (right_next) {
             return right_next.get_values();
         }
         else {
-            return null;
+            return undefined;
         }
     }
     
@@ -206,7 +204,7 @@ function FoldingNode(child, group_func, fold_func, name) {
 
     function prepare_tuples() {
         var tup = child.next_tuple();
-        while(tup != null) {
+        while(tup != undefined) {
             var group_tup = group_func(tup.get_values());
             var group_index = undefined;
             for(var i = 0; i < grouping_vars.length; i++)
@@ -240,7 +238,7 @@ function FoldingNode(child, group_func, fold_func, name) {
             prepare_tuples()
 
         if(index == grouping_vars.length)
-            return null;
+            return undefined;
 
         var tup = grouping_vars[index].concat(aggregate_vars[index]);
         index++;

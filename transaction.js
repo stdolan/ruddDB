@@ -160,14 +160,17 @@ module.exports = function Transaction (table, type) {
     }
 
     this.rollback = function () {
+        /* Kick out any locks that we didn't end up getting */
+        this.locks = this.locks.filter(function (lock) {return lock.owner == this.id});
+
         if(type == "copy") {
             delete(this.table);
         }
         else {
             for (var i = 0; i < this.locks.length; i++) {
                 //revert to original values
-                if (locks[i].old_values !== null) {
-                    locks[i].tuple.values = locks[i].old_values.slice();
+                if (this.locks[i].old_values !== null) {
+                    this.locks[i].tuple.values = this.locks[i].old_values.slice();
                 }
             }
             this.table.clear(this.id);

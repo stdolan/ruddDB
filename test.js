@@ -18,7 +18,7 @@ function assert(condition, message) {
 function test_plan(plan, expected) {
     var actual = [];
     var tup = plan.next_tuple();
-    while(tup !== null) {
+    while(tup !== undefined) {
         actual.push(tup);
         tup = plan.next_tuple();
     }
@@ -203,13 +203,13 @@ console.log(txn_1.id);
 console.log(txn_2.id);
 console.log(db.eval(db.select('a')));
 txn_1.update('a', function(num) {num = num + 1}, function(num) {return num == 7});
-console.log(db.eval(db.select('a')));
+console.log(db.eval(txn_1.select('a')));
 txn_2.update('a', function(num) {num = num + 1}, function(num) {return num == 5});
 console.log(db.eval(db.select('a')));
-txn_1.delete('a', function(num) {return num == 6});
-console.log(db.eval(db.select('a')));
-txn_2.delete('a', function(num) {return num == 8});
-console.log(db.eval(db.select('a')));
+txn_1.delete('a', function(num) {return num == 5});
+console.log(db.eval(txn_1.select('a')));
+txn_2.delete('a', function(num) {return num == 7});
+console.log(db.eval(txn_1.select('a')));
 txn_1.commit();
 console.log(db.eval(db.select('a')));
 

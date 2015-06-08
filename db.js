@@ -9,7 +9,7 @@ var fs = require("fs");
 
 var tables = {};
 func_queue = new concurrency.FunctionQueue();
-var transaction_map = {};
+transaction_map = {};
 next_id = 1;
 quiet = 0;
 
@@ -157,10 +157,13 @@ exports.eval = function (node) {
     var ret = [];
     var num_ret = 0
     var tup = node.next_tuple();
-    while(tup !== null) {
-        ret.push(tup);
+    while(tup !== undefined) {
+        if (tup !== null) {
+            ret.push(tup);
+            num_ret++;
+        }
+
         tup = node.next_tuple();
-        num_ret++;
     }
 
     /* If we're not being quiet, tell the user what happened */

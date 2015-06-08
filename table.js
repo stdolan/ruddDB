@@ -68,10 +68,7 @@ module.exports = function Table (tbl_name, schema, keys) {
         }
 
         tup = new Tuple(tup, lock);
-        tup.lock.old_values = null;
         lock.tuple = tup;
-        console.log(lock);
-        console.log(tup);
         this.tuples.push(tup);
     }
 

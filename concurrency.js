@@ -136,10 +136,6 @@ exports.FunctionQueue = function () {
                    as he's not the main session. */
                 this.queue = this.queue.filter(
                     function (proc) {
-                        if (proc[2].owner == wanter_list[i]) {
-                            proc[2].state = 0;
-                            proc[2].owner = undefined;
-                        }
                         return proc[3] != wanter_list[i];
                      }
                 );
@@ -153,6 +149,8 @@ exports.FunctionQueue = function () {
                 }
 
                 delete this.want_nodes[wanter_list[i]];
+
+                transaction_map[wanter_list[i]].rollback();
 
                 if (!quiet) {
                     console.log("Aborted transaction " + wanter_list[i] + " due to deadlock");
