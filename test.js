@@ -119,6 +119,8 @@ plan = new nodes.FoldingNode(
                           return [acc[0] + tup[0]]; });
 test_plan(plan, [[3, 'dogcat'], [7, 'giraffe']]);
 
+// TODO test queries! db.select is different from SelectNode...
+
 /* Test inserts */
 // TODO: test inserts with keys!
 console.log("Testing inserts");
