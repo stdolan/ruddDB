@@ -116,7 +116,9 @@ plan = new nodes.FoldingNode(
     new nodes.TableNode(table_a),
     function (tup) { return [tup[0].length]; },
     function (acc, tup) { if(acc === undefined) { acc = ['']; }
-                          return [acc[0] + tup[0]]; });
+                          return [acc[0] + tup[0]]; },
+						  "foldingTest",
+						  new Schema(['word length', 'concated tuple'], [types.INTEGER, types.BOOLEAN]));
 test_plan(plan, [[3, 'dogcat'], [7, 'giraffe']]);
 
 // TODO test queries! db.select is different from SelectNode...

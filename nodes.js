@@ -193,7 +193,8 @@ function UnionNode(left, right, name) {
 // fold_func takes an accumulated value (which may be undefined), and a tuple,
 // and folds the tuple into the accumulator. You should be thinking "things you
 // can pass foldl (for Haskell) or reduce (for Python).
-function FoldingNode(child, group_func, fold_func, name) {
+// schema is the schema of the resulting node.
+function FoldingNode(child, group_func, fold_func, name, schema) {
 
     var tuples_prepared = false;
     var index = 0;
@@ -230,7 +231,7 @@ function FoldingNode(child, group_func, fold_func, name) {
     }
 
     this.get_schema = function() {
-        // TODO
+        return schema;
     }
 
     this.next_tuple = function() {
