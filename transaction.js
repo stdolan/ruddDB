@@ -161,7 +161,8 @@ module.exports = function Transaction (table, type) {
 
     this.rollback = function () {
         /* Kick out any locks that we didn't end up getting */
-        this.locks = this.locks.filter(function (lock) {return lock.owner == this.id});
+        txn_id = this.id;
+        this.locks = this.locks.filter(function (lock) {return lock.owner == txn_id});
 
         if(type == "copy") {
             delete(this.table);
