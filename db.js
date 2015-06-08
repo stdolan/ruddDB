@@ -10,7 +10,7 @@ var fs = require("fs");
 var tables = {};
 func_queue = new concurrency.FunctionQueue();
 transaction_map = {};
-next_id = 1;
+var next_id = 1;
 quiet = 0;
 
 
@@ -238,7 +238,7 @@ exports.begin_transaction = function(tbl_name, type) {
         throw "Table " + tbl_name + " not found!";
     }
 
-    var txn = new Transaction(tbl, type);
+    var txn = new Transaction(tbl, type, next_id++);
     if(type == "lock") {
         transaction_map[txn.id] = txn;
     }
