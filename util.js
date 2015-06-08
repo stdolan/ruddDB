@@ -102,7 +102,7 @@ function transform_fold(input, schema) {
             default_tuple + "]; } return [" + new_body + "]; }");
         return func;
     } else {
-        return _transform_func(input, schema); // TODO should this get the acc treatment?
+        return _transform_func(input, schema);
     }
 }
 
@@ -157,7 +157,6 @@ function _transform_str(str, schema) {
 }
 
 /* Creates a function that projects a tuple based on an array of column names */
-// TODO Can we use this to simplify the project node?
 function create_project_function(cols, schema) {
     body = "function (tup) {return [";
     

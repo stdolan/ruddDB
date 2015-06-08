@@ -243,8 +243,6 @@ function FoldingNode(child, group_func, fold_func, name) {
         var tup = grouping_vars[index].concat(aggregate_vars[index]);
         index++;
         return tup;
-        // TODO problem: gluing the tuples together will be tricky. what about
-        // the other vars that aren't grouped by or aggregates?
     }
     
     this.get_name = function () {
