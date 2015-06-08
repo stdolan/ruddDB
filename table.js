@@ -118,11 +118,10 @@ module.exports = function Table (tbl_name, schema, keys) {
     }
 
     // Returns schema, tbl_name, and tuples
-    this.get_data = function() {
-		throw "Not concurrent yet!"
+    this.get_data = function(txn_id) {
         return {name   : this.tbl_name,
                 schema : [this.schema.names, this.schema.types],
-                tuples : this.tuples};
+                tuples : this.tuples.map(function (tup) {return tup.get_values(txn_id)})};
     }
 
     /* A helper for logging tuple deletion */

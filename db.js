@@ -252,7 +252,7 @@ exports.dump = function(filename) {
     data.tables = []
     for (table in tables)
         // See get_data() for more on how the data is structured
-        data.tables.push(tables[table].get_data());
+        data.tables.push(tables[table].get_data(0));
     fs.writeFile(filename, JSON.stringify(data), function(err) {
         if (err) throw err;
         console.log("Database written to file " + filename);
