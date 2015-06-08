@@ -124,9 +124,8 @@ module.exports = function Table (tbl_name, schema, keys) {
                 tuples : this.tuples.map(function (tup) {return tup.get_values(txn_id)})};
     }
 
-    /* A helper for logging tuple deletion */
+    /* A helper for logging tuple deletion. Not concurrency-safe. */
     this.num_tuples = function() {
-//		throw "Not concurrent yet!"
-//        return this.tuples.length;
+        return this.tuples.length;
     }
 }
