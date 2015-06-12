@@ -108,7 +108,6 @@ function transform_fold(input, schema) {
 
 function _transform_func(func, schema) {
     var func_str = func.toString();
-
     /* Find the relevant parts of the function string */
     var arg_start = func_str.indexOf("(") + 1;
     var arg_end = func_str.indexOf(")");
@@ -133,7 +132,7 @@ function _transform_func(func, schema) {
         var rep_string = "tup[" + inds[i] + "]";
         body = body.replace(new RegExp(arg, 'g'), rep_string);
     }
-
+	
     /* Reconstruct the original function and return it. */
     eval("func = function (tup) {" + body + "}");
     return func;

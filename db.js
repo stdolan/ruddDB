@@ -221,7 +221,7 @@ exports.fold = function(child, group, fold, schema) {
     group = util.transform_pred(group, child.get_schema());
     fold = util.transform_fold(fold, child.get_schema());
 
-    return new nodes.FoldingNode(child, group, fold, schema);
+    return new nodes.FoldingNode(child, group, fold, undefined, schema);
 }
 
 /* Starts a transaction involving table name, and returns a transaction context
